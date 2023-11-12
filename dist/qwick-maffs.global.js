@@ -1,6 +1,6 @@
 (function () {
 // noinspection JSUnusedGlobalSymbols
-var numberReg = /^\d+?/;
+var numberReg = /^\d+/;
 var eReg = /^e[+-]?\d+/i;
 var whitespaceReg = /\s/g;
 var QwickMaffs= {

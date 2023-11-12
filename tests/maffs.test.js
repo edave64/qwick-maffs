@@ -24,6 +24,7 @@ function errorTest(input, error, opts) {
 
 describe('Basics', function () {
     simpleTest("1", 1);
+    simpleTest("42", 42);
     simpleTest("1.0", 1);
     simpleTest("1.1", 1.1);
     simpleTest("1c1", 1.1, { decimalSep: 'c' });
