@@ -1,0 +1,16 @@
+<html>
+    <head>
+        <script src="dist/qwick-maffs.global.js"></script>
+        <script>
+            function maffs(event) {
+                console.log("maff")
+                event.target.value = QwickMaffs.exec(event.target.value);
+            }
+        </script>
+    </head>
+    <body>
+        Try it yourself:
+        <input onblur="maffs(event)" />
+        <input />
+    </body>
+</html>
