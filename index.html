@@ -2,7 +2,11 @@
     <head>
         <script src="dist/qwick-maffs.global.js"></script>
         <script>
+            /**
+             * @param {KeyboardEvent|FocusEvent} event
+             */
             function maffs(event) {
+                if (event.type === 'keydown' && event.key !== 'Enter') return;
                 console.log("maff")
                 event.target.value = QwickMaffs.exec(event.target.value);
             }
@@ -10,7 +14,7 @@
     </head>
     <body>
         Try it yourself:
-        <input onblur="maffs(event)" />
+        <input onblur="maffs(event)" onkeydown="maffs(event)" />
         <input />
     </body>
 </html>
