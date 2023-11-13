@@ -1,6 +1,6 @@
 {
 	"name": "qwick-maffs",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Support simple mathmatical expressions in numeric inputs. Written to be completely framework agnostic.",
 	"main": "index.js",
 	"scripts": {
