@@ -1,20 +1,40 @@
 <html>
-    <head>
-        <script src="dist/qwick-maffs.global.js"></script>
-        <script>
-            /**
-             * @param {KeyboardEvent|FocusEvent} event
-             */
-            function maffs(event) {
-                if (event.type === 'keydown' && event.key !== 'Enter') return;
-                console.log("maff")
-                event.target.value = QwickMaffs.exec(event.target.value);
-            }
-        </script>
-    </head>
-    <body>
-        Try it yourself:
-        <input onblur="maffs(event)" onkeydown="maffs(event)" />
-        <input />
-    </body>
+	<head>
+		<script src="dist/qwick-maffs.global.js"></script>
+		<script>
+			/**
+			 * @param {KeyboardEvent|FocusEvent} event
+			 */
+			function maffs(event) {
+				if (event.type === 'keydown' && event.key !== 'Enter') return;
+
+				var strValue = event.target.value;
+				event.target.value = QwickMaffs.exec(strValue);
+			}
+		</script>
+		<style>
+			body {
+				max-width: 768px;
+				margin: auto;
+				padding-top: 16px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Qwick Maffs</h1>
+		<p>Support basic arithmatic in your numeric inputs.</p>
+		<ul>
+			<li>+, -, *, /, ^</li>
+			<li>Operator precedence</li>
+			<li>Parentesis</li>
+		</ul>
+		<p>Try it yourself (Press enter of leave the input to evaluate):</p>
+		<p>
+			<label for="strict_input">Test:</label>
+			<input id="strict_input" onblur="maffs(event)" onkeydown="maffs(event)" />
+		</p>
+		<p>
+			<a href="https://github.com/edave64/qwick-maffs/">Fork me on Github</a>
+		</p>
+	</body>
 </html>
