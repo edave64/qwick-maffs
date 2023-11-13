@@ -7,9 +7,9 @@ A small, (runtime-)dependency-free library to support simple arithmetic in input
 QwickMaffs supports several packaging schemes. The files you need to ship it can be found in the "dist" directory.
 
 For a classic library for your browser that exports a simple global variable "QwickMaffs", use
-[qwick-maffs.global.js](./blob/main/dist/qwick-maffs.global.js). We also provide
-[an AMD module](./blob/main/dist/qwick-maffs.amd.js), [a commonjs module](./blob/main/dist/qwick-maffs.cjs)
-and [an esmodule](./blob/main/dist/qwick-maffs.mjs).
+[qwick-maffs.global.js](./dist/qwick-maffs.global.js). We also provide
+[an AMD module](./dist/qwick-maffs.amd.js), [a commonjs module](./dist/qwick-maffs.cjs)
+and [an esmodule](./dist/qwick-maffs.mjs).
 
 ## Usage
 
