@@ -9,7 +9,7 @@ var QwickMaffs = {
 		supportENotation: true,
 	},
 	Error: {
-		UnbalancedParentesis: 0,
+		UnbalancedParenthesis: 0,
 		UnexpectedSymbol: 1,
 		IncorrectNumberOfParameters: 2,
 		MultipleNumbers: 3,
@@ -66,7 +66,7 @@ function tokenize(str, opts) {
 			case ')':
 				if (stack.length === 0) {
 					return {
-						error: QwickMaffs.Error.UnbalancedParentesis,
+						error: QwickMaffs.Error.UnbalancedParenthesis,
 						pos: i,
 					};
 				}
@@ -129,7 +129,7 @@ function tokenize(str, opts) {
 	}
 	if (stack.length !== 0) {
 		return {
-			error: QwickMaffs.Error.UnbalancedParentesis,
+			error: QwickMaffs.Error.UnbalancedParenthesis,
 			pos: i,
 		};
 	}

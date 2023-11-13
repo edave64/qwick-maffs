@@ -38,8 +38,8 @@ like this:
 ```
 {
 	type: 0 // An enum value. Can be one of the following from the `QwickMaffs.Error` enum:
-	        // UnbalancedParentesis: There are too few or too many parentesis. If there are too few, pos will be at the
-			//                       end of the string.
+	        // UnbalancedParenthesis: There are too few or too many parentesis. If there are too few, pos will be at
+			//                        the end of the string.
 			//
 			// UnexpectedSymbol: A symbol that we don't know what to do with.
 			//

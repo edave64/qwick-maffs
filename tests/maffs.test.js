@@ -1,85 +1,111 @@
 var QwickMaffs = require('../dist/qwick-maffs.cjs');
 
-/**
- * @param {string} input
- * @param {number} output
- * @param {Object} [opts]
- */
-function simpleTest(input, output, opts) {
-	test('"' + input + '" -> ' + output, function () {
-		expect(QwickMaffs.exec(input, opts)).toBe(output);
-	});
-}
-
-/**
- * @param {string} input
- * @param {{error: number, pos: number}} error
- * @param {Object} [opts]
- */
-function errorTest(input, error, opts) {
-	test('"' + input + '"', function () {
-		expect(QwickMaffs.exec(input, opts)).toStrictEqual(error);
-	});
-}
-
 describe('Basics', function () {
-	simpleTest('1', 1);
-	simpleTest('42', 42);
-	simpleTest('1.0', 1);
-	simpleTest('1.1', 1.1);
-	simpleTest('1c1', 1.1, { decimalSep: 'c' });
-	simpleTest('1c1', 1.1, { decimalSep: /\w/ });
-	simpleTest('.1', 0.1);
-	simpleTest('1.1e1', 11);
-	simpleTest('3 + 3', 6);
-	simpleTest('3 - 3', 0);
-	simpleTest('3 * 3', 9);
-	simpleTest('3 / 3', 1);
-	simpleTest('3 ^ 3', 27);
-	simpleTest('3²', 9);
-	simpleTest('3³', 27);
-	simpleTest('(2) + 1', 3);
+	test('"1" -> 1', function () {
+		expect(QwickMaffs.exec('1')).toBe(1);
+	});
+	test('"42" -> 42', function () {
+		expect(QwickMaffs.exec('42')).toBe(42);
+	});
+	test('"1.0" -> 1', function () {
+		expect(QwickMaffs.exec('1.0')).toBe(1);
+	});
+	test('"1.1" -> 1.1', function () {
+		expect(QwickMaffs.exec('1.1')).toBe(1.1);
+	});
+	test('"1c1" -> 1.1', function () {
+		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);
+	});
+	test('"1c1" -> 1.1', function () {
+		expect(QwickMaffs.exec('1c1', { decimalSep: /\w/ })).toBe(1.1);
+	});
+	test('".1" -> 0.1', function () {
+		expect(QwickMaffs.exec('.1')).toBe(0.1);
+	});
+	test('"1.1e1" -> 11', function () {
+		expect(QwickMaffs.exec('1.1e1')).toBe(11);
+	});
+	test('"3 + 3" -> 6', function () {
+		expect(QwickMaffs.exec('3 + 3')).toBe(6);
+	});
+	test('"3 - 3" -> 0', function () {
+		expect(QwickMaffs.exec('3 - 3')).toBe(0);
+	});
+	test('"3 * 3" -> 9', function () {
+		expect(QwickMaffs.exec('3 * 3')).toBe(9);
+	});
+	test('"3 / 3" -> 1', function () {
+		expect(QwickMaffs.exec('3 / 3')).toBe(1);
+	});
+	test('"3 ^ 3" -> 27', function () {
+		expect(QwickMaffs.exec('3 ^ 3')).toBe(27);
+	});
+	test('"3²" -> 9', function () {
+		expect(QwickMaffs.exec('3²')).toBe(9);
+	});
+	test('"3³" -> 27', function () {
+		expect(QwickMaffs.exec('3³')).toBe(27);
+	});
+	test('"(2) + 1" -> 3', function () {
+		expect(QwickMaffs.exec('(2) + 1')).toBe(3);
+	});
 });
 
 describe('Order of operations', function () {
-	simpleTest('1 + 2 * 4 ^ 5', 2049);
-	simpleTest('(1 + 2) * 4 ^ 5', 3072);
-	simpleTest('(1 + 2 * 4) ^ 5', 59049);
-	simpleTest('((1 + 2) * 4) ^ 5', 248832);
+	test('"1 + 2 * 4 ^ 5" -> 2049', function () {
+		expect(QwickMaffs.exec('1 + 2 * 4 ^ 5')).toBe(2049);
+	});
+	test('"(1 + 2) * 4 ^ 5" -> 3072', function () {
+		expect(QwickMaffs.exec('(1 + 2) * 4 ^ 5')).toBe(3072);
+	});
+	test('"(1 + 2 * 4) ^ 5" -> 59049', function () {
+		expect(QwickMaffs.exec('(1 + 2 * 4) ^ 5')).toBe(59049);
+	});
+	test('"((1 + 2) * 4) ^ 5" -> 248832', function () {
+		expect(QwickMaffs.exec('((1 + 2) * 4) ^ 5')).toBe(248832);
+	});
 });
 
 describe('Errors', function () {
-	errorTest('1 + (4', {
-		error: QwickMaffs.Error.UnbalancedParentesis,
-		pos: 6,
+	test('"1 + (4"', function () {
+		expect(QwickMaffs.exec('1 + (4')).toStrictEqual({
+			error: QwickMaffs.Error.UnbalancedParenthesis,
+			pos: 6,
+		});
 	});
 
-	errorTest('1) + 4', {
-		error: QwickMaffs.Error.UnbalancedParentesis,
-		pos: 1,
+	test('"1) + 4"', function () {
+		expect(QwickMaffs.exec('1) + 4')).toStrictEqual({
+			error: QwickMaffs.Error.UnbalancedParenthesis,
+			pos: 1,
+		});
 	});
 
-	errorTest('wat?', {
-		error: QwickMaffs.Error.UnexpectedSymbol,
-		pos: 0,
+	test('"wat?"', function () {
+		expect(QwickMaffs.exec('wat?')).toStrictEqual({
+			error: QwickMaffs.Error.UnexpectedSymbol,
+			pos: 0,
+		});
 	});
 
-	errorTest('wat?', {
-		error: QwickMaffs.Error.UnexpectedSymbol,
-		pos: 0,
+	test('"wat?"', function () {
+		expect(QwickMaffs.exec('wat?')).toStrictEqual({
+			error: QwickMaffs.Error.UnexpectedSymbol,
+			pos: 0,
+		});
 	});
 
-	errorTest('45.+', {
-		error: QwickMaffs.Error.UnexpectedSymbol,
-		pos: 3,
+	test('"45.+"', function () {
+		expect(QwickMaffs.exec('45.+')).toStrictEqual({
+			error: QwickMaffs.Error.UnexpectedSymbol,
+			pos: 3,
+		});
 	});
 
-	errorTest(
-		'45e1',
-		{
+	test('"45e1"', function () {
+		expect(QwickMaffs.exec('45e1', { supportENotation: false })).toStrictEqual({
 			error: QwickMaffs.Error.UnexpectedSymbol,
 			pos: 2,
-		},
-		{ supportENotation: false }
-	);
+		});
+	});
 });
