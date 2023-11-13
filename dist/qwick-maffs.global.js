@@ -1,5 +1,9 @@
 (function () {
 // noinspection JSUnusedGlobalSymbols
+/*!
+ * QwickMaffs 0.1.0 by edave64
+ * Released under the MIT license: https://github.com/edave64/qwick-maffs/blob/main/LICENCE
+ */
 var QwickMaffs = {
 	DefaultOptions: {
 		decimalSep: /[,.]/,
@@ -15,9 +19,9 @@ var QwickMaffs = {
 	/**
 	 * Takes a string containing either a number or a simple numeric expression
 	 *
-	 * @param {string} str - A simple arithmatic expression
+	 * @param {string} str - A simple arithmetic expression
 	 * @param {typeof QwickMaffs.DefaultOptions} [opts] - Configuration
-	 * @return {number|{error: number, pos: number}} - A number if the expression was sucessfully executed, otherwise an error object
+	 * @return {number|{error: number, pos: number}} - A number if the expression was successfully executed, otherwise an error object
 	 */
 	exec: function (str, opts) {
 		if (!opts) opts = QwickMaffs.DefaultOptions;
