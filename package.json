@@ -16,6 +16,7 @@
 		"arithmetic"
 	],
 	"author": "edave64",
+	"types": "./index.d.ts",
 	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/edave64/qwick-maffs/issues"
@@ -24,8 +25,7 @@
 	"devDependencies": {
 		"jest": "^29.7.0",
 		"prettier": "^3.0.3",
-		"prettier-plugin-organize-imports": "^3.2.4",
-		"typescript": "^5.2.2"
+		"prettier-plugin-organize-imports": "^3.2.4"
 	},
 	"exports": {
 		"import": "./dist/qwick-maffs.mjs",

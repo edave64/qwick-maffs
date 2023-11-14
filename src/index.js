@@ -5,7 +5,14 @@
  */
 var QwickMaffs = {
 	DefaultOptions: {
+		/**
+		 * The allowed decimal separator. This must always be a single character in length.
+		 * @type {RegExp | String}
+		 */
 		decimalSep: /[,.]/,
+		/**
+		 * If true, e-notation (like 4.5e5) is supported.
+		 */
 		supportENotation: true,
 	},
 	Error: {
@@ -45,6 +52,7 @@ var QwickMaffs = {
  * @param {string} str
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @return {QMToken[] | {error: number, pos: number}}
+ * @private
  */
 function tokenize(str, opts) {
 	// To parse parentheses without recursion, an opening parenthesis pushes the currentList of tokens onto the
@@ -141,6 +149,7 @@ function tokenize(str, opts) {
  * @param {QMToken[]} tokens
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @return {number|{error: number, pos: number}}
+ * @private
  */
 function execTokenList(tokens, opts) {
 	var highestPrecedence = -1;
