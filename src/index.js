@@ -9,11 +9,11 @@ var QwickMaffs = {
 		supportENotation: true,
 	},
 	Error: {
-		UnbalancedParenthesis: 0,
-		UnexpectedSymbol: 1,
-		IncorrectNumberOfParameters: 2,
-		MultipleNumbers: 3,
-		NoNumbers: 4,
+		UnbalancedParenthesis: 1,
+		UnexpectedSymbol: 2,
+		IncorrectNumberOfParameters: 4,
+		MultipleNumbers: 8,
+		NoNumbers: 16,
 	},
 	/**
 	 * Takes a string containing either a number or a simple numeric expression
