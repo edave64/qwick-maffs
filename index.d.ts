@@ -29,7 +29,11 @@ declare interface Options {
 	/**
 	 * If true, e-notation (like 4.5e5) is supported.
 	 */
-	supportENotation: true;
+	supportENotation: boolean;
+	/**
+	 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+	 */
+	ignoreErrors: Error;
 }
 
 declare interface IError {

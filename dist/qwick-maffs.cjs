@@ -5,15 +5,26 @@
  */
 var QwickMaffs = {
 	DefaultOptions: {
+		/**
+		 * The allowed decimal separator. This must always be a single character in length.
+		 * @type {RegExp | String}
+		 */
 		decimalSep: /[,.]/,
+		/**
+		 * If true, e-notation (like 4.5e5) is supported.
+		 */
 		supportENotation: true,
+		/**
+		 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+		 */
+		ignoreErrors: 0,
 	},
 	Error: {
-		UnbalancedParenthesis: 0,
-		UnexpectedSymbol: 1,
-		IncorrectNumberOfParameters: 2,
-		MultipleNumbers: 3,
-		NoNumbers: 4,
+		UnbalancedParenthesis: 1,
+		UnexpectedSymbol: 2,
+		IncorrectNumberOfParameters: 4,
+		MultipleNumbers: 8,
+		NoNumbers: 16,
 	},
 	/**
 	 * Takes a string containing either a number or a simple numeric expression
@@ -45,6 +56,7 @@ var QwickMaffs = {
  * @param {string} str
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @return {QMToken[] | {error: number, pos: number}}
+ * @private
  */
 function tokenize(str, opts) {
 	// To parse parentheses without recursion, an opening parenthesis pushes the currentList of tokens onto the
@@ -65,12 +77,18 @@ function tokenize(str, opts) {
 				break;
 			case ')':
 				if (stack.length === 0) {
-					return {
-						error: QwickMaffs.Error.UnbalancedParenthesis,
-						pos: i,
-					};
+					if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+						// Move all already parsed elements into a sub-expression.
+						currentList = [currentList];
+					} else {
+						return {
+							error: QwickMaffs.Error.UnbalancedParenthesis,
+							pos: i,
+						};
+					}
+				} else {
+					currentList = stack.pop();
 				}
-				currentList = stack.pop();
 				break;
 			case '+':
 			case '-':
@@ -128,6 +146,9 @@ function tokenize(str, opts) {
 		}
 	}
 	if (stack.length !== 0) {
+		if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+			return stack[0];
+		}
 		return {
 			error: QwickMaffs.Error.UnbalancedParenthesis,
 			pos: i,
@@ -141,6 +162,7 @@ function tokenize(str, opts) {
  * @param {QMToken[]} tokens
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @return {number|{error: number, pos: number}}
+ * @private
  */
 function execTokenList(tokens, opts) {
 	var highestPrecedence = -1;

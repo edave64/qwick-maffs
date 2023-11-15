@@ -14,6 +14,10 @@ var QwickMaffs = {
 		 * If true, e-notation (like 4.5e5) is supported.
 		 */
 		supportENotation: true,
+		/**
+		 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+		 */
+		ignoreErrors: 0,
 	},
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -73,12 +77,18 @@ function tokenize(str, opts) {
 				break;
 			case ')':
 				if (stack.length === 0) {
-					return {
-						error: QwickMaffs.Error.UnbalancedParenthesis,
-						pos: i,
-					};
+					if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+						// Move all already parsed elements into a sub-expression.
+						currentList = [currentList];
+					} else {
+						return {
+							error: QwickMaffs.Error.UnbalancedParenthesis,
+							pos: i,
+						};
+					}
+				} else {
+					currentList = stack.pop();
 				}
-				currentList = stack.pop();
 				break;
 			case '+':
 			case '-':
@@ -136,6 +146,9 @@ function tokenize(str, opts) {
 		}
 	}
 	if (stack.length !== 0) {
+		if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+			return stack[0];
+		}
 		return {
 			error: QwickMaffs.Error.UnbalancedParenthesis,
 			pos: i,

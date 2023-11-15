@@ -109,3 +109,34 @@ describe('Errors', function () {
 		});
 	});
 });
+
+describe('Skip UnbalancedParenthesis', function () {
+	test('"1 + (4"', function () {
+		expect(
+			QwickMaffs.exec('1 + (4', {
+				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			})
+		).toBe(5);
+	});
+	test('"1 + (4 - (3"', function () {
+		expect(
+			QwickMaffs.exec('1 + (4 - (3', {
+				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			})
+		).toBe(2);
+	});
+	test('"4 - 1) * 4"', function () {
+		expect(
+			QwickMaffs.exec('4 - 1) * 4', {
+				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			})
+		).toBe(12);
+	});
+	test('"5 - 1)² * (3 + 2"', function () {
+		expect(
+			QwickMaffs.exec('5 - 1)² * (3 + 2', {
+				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			})
+		).toBe(80);
+	});
+});
