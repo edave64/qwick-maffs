@@ -119,19 +119,27 @@ function tokenize(str, opts) {
 					match = str.substring(i).match(numberReg);
 					// The decimal sep wasn't followed by a number. This isn't a number.
 					if (!match || match.index !== 0) {
-						return {
-							error: QwickMaffs.Error.UnexpectedSymbol,
-							pos: i,
-						};
+						if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+							continue;
+						} else {
+							return {
+								error: QwickMaffs.Error.UnexpectedSymbol,
+								pos: i,
+							};
+						}
 					}
 					num += match[0];
 					i += match[0].length;
 				} else if (!match) {
 					// We neither found a decimal sep, nor a number. This isn't a number.
-					return {
-						error: QwickMaffs.Error.UnexpectedSymbol,
-						pos: i,
-					};
+					if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+						continue;
+					} else {
+						return {
+							error: QwickMaffs.Error.UnexpectedSymbol,
+							pos: i,
+						};
+					}
 				}
 				if (opts.supportENotation) {
 					var eMatch = str.substring(i).match(eReg);

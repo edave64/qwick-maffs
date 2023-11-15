@@ -108,6 +108,13 @@ describe('Errors', function () {
 			pos: 2,
 		});
 	});
+
+	test('"4 + . 8"', function () {
+		expect(QwickMaffs.exec('4 + . 8')).toStrictEqual({
+			error: QwickMaffs.Error.UnexpectedSymbol,
+			pos: 5,
+		});
+	});
 });
 
 describe('Skip UnbalancedParenthesis', function () {
@@ -138,5 +145,26 @@ describe('Skip UnbalancedParenthesis', function () {
 				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
 			})
 		).toBe(80);
+	});
+});
+
+describe('Skip UnexpectedSymbol', function () {
+	test('"4 + . 8"', function () {
+		expect(
+			QwickMaffs.exec('4 + . 8', {
+				ignoreErrors: QwickMaffs.Error.UnexpectedSymbol,
+			})
+		).toBe(12);
+	});
+	test('"45e1"', function () {
+		expect(
+			QwickMaffs.exec('45e1', {
+				supportENotation: false,
+				ignoreErrors: QwickMaffs.Error.UnexpectedSymbol,
+			})
+		).toStrictEqual({
+			error: QwickMaffs.Error.MultipleNumbers,
+			pos: 3,
+		});
 	});
 });
