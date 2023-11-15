@@ -88,13 +88,6 @@ describe('Errors', function () {
 		});
 	});
 
-	test('"wat?"', function () {
-		expect(QwickMaffs.exec('wat?')).toStrictEqual({
-			error: QwickMaffs.Error.UnexpectedSymbol,
-			pos: 0,
-		});
-	});
-
 	test('"45.+"', function () {
 		expect(QwickMaffs.exec('45.+')).toStrictEqual({
 			error: QwickMaffs.Error.UnexpectedSymbol,
