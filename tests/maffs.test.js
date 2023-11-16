@@ -230,3 +230,13 @@ describe('Skip UnexpectedSymbol', function () {
 		});
 	});
 });
+
+describe('Skip MultipleNumbers', function () {
+	test('"4(8)"', function () {
+		expect(
+			QwickMaffs.exec('4(8)', {
+				ignoreErrors: QwickMaffs.Error.MultipleNumbers,
+			})
+		).toBe(32);
+	});
+});

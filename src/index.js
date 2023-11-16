@@ -45,7 +45,7 @@ var QwickMaffs = {
 		var tokens = tokenize(str, opts);
 		// Propagate error
 		if (!(tokens instanceof Array)) return tokens;
-		return execTokenList(tokens);
+		return execTokenList(tokens, opts);
 	},
 };
 
@@ -177,7 +177,7 @@ function execTokenList(tokens, opts) {
 	for (var i = 0; i < tokens.length; ++i) {
 		var token = tokens[i];
 		if (token instanceof Array) {
-			var ret = execTokenList(token);
+			var ret = execTokenList(token, opts);
 			if (typeof ret === 'object') {
 				return ret;
 			}
@@ -262,10 +262,14 @@ function execTokenList(tokens, opts) {
 		}
 	}
 	if (tokens.length > 1) {
-		return {
-			error: QwickMaffs.Error.MultipleNumbers,
-			pos: tokens[1].pos,
-		};
+		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
+			return tokens.reduce((a, b) => a.value * b.value);
+		} else {
+			return {
+				error: QwickMaffs.Error.MultipleNumbers,
+				pos: tokens[1].pos,
+			};
+		}
 	}
 	if (tokens.length === 0) {
 		return {
