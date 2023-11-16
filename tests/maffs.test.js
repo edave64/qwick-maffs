@@ -49,6 +49,12 @@ describe('Basics', function () {
 	test('"(2) + 1" -> 3', function () {
 		expect(QwickMaffs.exec('(2) + 1')).toBe(3);
 	});
+	test('"+ 4"', function () {
+		expect(QwickMaffs.exec('+ 4')).toBe(4);
+	});
+	test('"- 4"', function () {
+		expect(QwickMaffs.exec('- 4')).toBe(-4);
+	});
 });
 
 describe('Order of operations', function () {

@@ -231,10 +231,24 @@ function execTokenList(tokens, opts) {
 				}[token.value];
 			}
 			if (!op) continue;
-			var a = expectNumber(tokens[i - 1], token.pos);
+			let a = expectNumber(tokens[i - 1], token.pos);
 			// Propagate error
-			if (typeof a === 'object') return a;
-			var b = 0;
+			if (typeof a === 'object') {
+				if (token.value === '+' || token.value === '-') {
+					let b = expectNumber(tokens[i + 1], token.pos);
+					if (typeof b === 'number') {
+						if (token.value === '+') {
+							tokens.splice(i, 2, { value: b, pos: token.pos });
+							continue;
+						} else if (token.value === '-') {
+							tokens.splice(i, 2, { value: -b, pos: token.pos });
+							continue;
+						}
+					}
+				}
+				return a;
+			}
+			let b = 0;
 			if (op.length > 1) {
 				b = expectNumber(tokens[i + 1], token.pos);
 				// Propagate error
