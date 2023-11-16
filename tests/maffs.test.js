@@ -114,6 +114,13 @@ describe('Errors', function () {
 			pos: 5,
 		});
 	});
+
+	test('"4 +"', function () {
+		expect(QwickMaffs.exec('4 +')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 2,
+		});
+	});
 });
 
 describe('Skip UnbalancedParenthesis', function () {
