@@ -221,7 +221,7 @@ function execTokenList(tokens, opts) {
 						return a / b;
 					},
 				}[token.value];
-			} else if (p === 1) {
+			} else {
 				op = {
 					'+': function (a, b) {
 						return a + b;
@@ -241,7 +241,7 @@ function execTokenList(tokens, opts) {
 						if (token.value === '+') {
 							tokens.splice(i, 2, { value: b, pos: token.pos });
 							continue;
-						} else if (token.value === '-') {
+						} else {
 							tokens.splice(i, 2, { value: -b, pos: token.pos });
 							continue;
 						}
@@ -271,7 +271,7 @@ function execTokenList(tokens, opts) {
 	if (tokens.length === 0) {
 		return {
 			error: QwickMaffs.Error.NoNumbers,
-			pos: tokens.pos,
+			pos: tokens.pos || 0,
 		};
 	}
 	return tokens[0].value;

@@ -121,6 +121,62 @@ describe('Errors', function () {
 			pos: 2,
 		});
 	});
+
+	test('"4 +"', function () {
+		expect(QwickMaffs.exec('4 +')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 2,
+		});
+	});
+
+	test('"* 4"', function () {
+		expect(QwickMaffs.exec('* 4')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 0,
+		});
+	});
+
+	test('"* ²"', function () {
+		expect(QwickMaffs.exec('* +')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 0,
+		});
+	});
+
+	test('"+"', function () {
+		expect(QwickMaffs.exec('+')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 0,
+		});
+	});
+
+	test('"4 4"', function () {
+		expect(QwickMaffs.exec('4 4')).toStrictEqual({
+			error: QwickMaffs.Error.MultipleNumbers,
+			pos: 2,
+		});
+	});
+
+	test('"(4 4)"', function () {
+		expect(QwickMaffs.exec('(4 4)')).toStrictEqual({
+			error: QwickMaffs.Error.MultipleNumbers,
+			pos: 3,
+		});
+	});
+
+	test('""', function () {
+		expect(QwickMaffs.exec('')).toStrictEqual({
+			error: QwickMaffs.Error.NoNumbers,
+			pos: 0,
+		});
+	});
+
+	test('"4 + 4 ()"', function () {
+		expect(QwickMaffs.exec('4 + 4 ()')).toStrictEqual({
+			error: QwickMaffs.Error.NoNumbers,
+			pos: 6,
+		});
+	});
 });
 
 describe('Skip UnbalancedParenthesis', function () {
