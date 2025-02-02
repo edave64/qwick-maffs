@@ -62,6 +62,16 @@
 				color: red;
 			}
 
+			.comment {
+				color: greenyellow;
+			}
+
+			@media (prefers-color-scheme: dark) {
+				a {
+					color: lightblue;
+				}
+			}
+
 			@media (prefers-color-scheme: light) {
 				body {
 					background: white;
@@ -70,6 +80,10 @@
 
 				.errors {
 					color: darkred;
+				}
+
+				.comment {
+					color: darkgreen;
 				}
 			}
 		</style>
@@ -88,6 +102,73 @@
 			<input id="strict_input" onblur="maffs(event)" onkeydown="maffs(event)" />
 		</p>
 		<p class="errors"></p>
+		<h2>Documentation</h2>
+		<p>
+			QuickMaffs only exports a single function called `exec`. This takes the
+			text in the input and a set of configuration options.
+		</p>
+		<p>
+			<pre><code>
+const result = QuickMaffs.exec('4 + 5 * 6', {
+	<span class="comment">// Every property here is optional. I'm showing the default values here. If
+	// all options remain default, the object can be omited entirely.</span>
+
+	decimalSep: /[,.]/, <span class="comment">// The allowed decimal separator. This must always be a
+	                    // single character in length.</span>
+	supportENotation: true, <span class="comment">/// If true, e-notation (like 4.5e5) is supported.</span>
+	ignoreErrors: 0, <span class="comment">// errors that will be silently ignored. Set like this:
+	                 // `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis
+	                 // | QwickMaffs.Error.NoNumbers`</span>
+});
+			</code></pre>
+		</p>
+		<p>
+			The return value can either be a number value if the execution was successful, or an error object.
+			The function will not throw exceptions.
+		</p>
+		<p>
+			The errors returned will have the shape <code>{ pos: number, error: number }</code>, where <code>pos</code>
+			is the string position at which the error occured and <code>error</code> is an error code.
+			<code>QwickMaffs.Error</code> contains an enum of all possible error codes. Error codes passed to the
+			<code>ignoreErrors</code> will never be returned. Instead, QwickMaffs will attempt to silently fix the
+			issue.
+		</p>
+		<h3>Errors</h3>
+		<h4>UnbalancedParenthesis (Code: 1)</h4>
+		<p>
+			A closing parenthesis without a preceding opening, or an opening parenthesis that is never closed.
+		</p>
+		<p>
+			If ignored: An unexpected closing parenthesis will insert a new opening parenthesis at the very start. An
+			unclosed parenthesis will insert a new closing parenthesis at the end.
+		</p>
+		<h4>UnexpectedSymbol (Code: 2)</h4>
+		<p>
+			A symbol was used that the parser could	not interpret.
+		</p>
+		<p>
+			If ignored: The symbol will be ignored.
+		</p>
+		<h4>IncorrectNumberOfParameters (Code: 4)</h4>
+		<p>
+			An operator is missing it's left or right parameter.
+		</p>
+		<!-- What's the ignore behavior? -->
+		<h4>MultipleNumbers (Code: 8)</h4>
+		<p>
+			The computation resulted in more than one number. (E.g. the user entered `8 4`).
+		</p>
+		<p>
+			If ignored: The values will be multiplied, allowing syntax like (`8(4)`, but operator ordering my not be as
+			expected)
+		</p>
+		<h4>NoNumbers (Code: 16)</h4>
+		<p>
+			The returned no numbers (Like an empty input)
+		</p>
+		<p>
+			If ignored: 0 is returned.
+		</p>
 		<p>
 			<a href="https://github.com/edave64/qwick-maffs/">Fork me on Github</a>
 		</p>
