@@ -49,10 +49,9 @@
 				max-width: 768px;
 				margin: auto;
 				padding-top: 16px;
-			}
-
-			h1 {
 				font-family: sans-serif;
+				background: black;
+				color: white;
 			}
 
 			p {
@@ -60,7 +59,18 @@
 			}
 
 			.errors {
-				color: darkred;
+				color: red;
+			}
+
+			@media (prefers-color-scheme: light) {
+				body {
+					background: white;
+					color: black;
+				}
+
+				.errors {
+					color: darkred;
+				}
 			}
 		</style>
 	</head>
