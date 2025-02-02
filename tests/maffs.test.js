@@ -64,6 +64,9 @@ describe('Order of operations', function () {
 	test('"(1 + 2) * 4 ^ 5" -> 3072', function () {
 		expect(QwickMaffs.exec('(1 + 2) * 4 ^ 5')).toBe(3072);
 	});
+	test('"1 + (2 * 4) ^ 5" -> 32769', function () {
+		expect(QwickMaffs.exec('1 + (2 * 4) ^ 5')).toBe(32769);
+	});
 	test('"(1 + 2 * 4) ^ 5" -> 59049', function () {
 		expect(QwickMaffs.exec('(1 + 2 * 4) ^ 5')).toBe(59049);
 	});
