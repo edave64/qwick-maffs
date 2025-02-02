@@ -8,8 +8,40 @@
 			function maffs(event) {
 				if (event.type === 'keydown' && event.key !== 'Enter') return;
 
-				var strValue = event.target.value;
-				event.target.value = QwickMaffs.exec(strValue);
+				const strValue = event.target.value;
+				const result = QwickMaffs.exec(strValue);
+				const errors = document.querySelector('.errors');
+				if (typeof result === 'number') {
+					event.target.value = result;
+					errors.innerHTML = '';
+				} else {
+					let text = `ERROR: `;
+					switch (result.error) {
+						case QwickMaffs.Error.UnbalancedParenthesis:
+							text += 'Unbalanced parenthesis';
+							break;
+						case QwickMaffs.Error.UnexpectedSymbol:
+							text += `Unexpected symbol '${strValue[result.pos]}'`;
+							break;
+						case QwickMaffs.Error.IncorrectNumberOfParameters:
+							text += 'Incorrect number of parameters';
+							break;
+						case QwickMaffs.Error.MultipleNumbers:
+							text +=
+								'Multiple unconnected numbers (Did you forget an operator?)';
+							break;
+						case QwickMaffs.Error.NoNumbers:
+							text += 'The operation resulted in no numeric values';
+							break;
+						default:
+							text += 'Unknown error';
+							break;
+					}
+
+					text += ` at position ${result.pos + 1}: ${strValue.slice(0, result.pos)}<u>${strValue[result.pos] ?? ''}</u>${strValue.slice(result.pos + 1)}`;
+
+					errors.innerHTML = text;
+				}
 			}
 		</script>
 		<style>
@@ -21,6 +53,14 @@
 
 			h1 {
 				font-family: sans-serif;
+			}
+
+			p {
+				line-height: 150%;
+			}
+
+			.errors {
+				color: darkred;
 			}
 		</style>
 	</head>
@@ -37,11 +77,13 @@
 			<label for="strict_input">Test:</label>
 			<input id="strict_input" onblur="maffs(event)" onkeydown="maffs(event)" />
 		</p>
+		<p class="errors"></p>
 		<p>
 			<a href="https://github.com/edave64/qwick-maffs/">Fork me on Github</a>
 		</p>
 		<p>
-			Available under <a href="https://github.com/edave64/qwick-maffs/LICENCE">MIT licence</a>
+			Available under
+			<a href="https://github.com/edave64/qwick-maffs/LICENCE">MIT licence</a>
 		</p>
 	</body>
 </html>
