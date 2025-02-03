@@ -45,17 +45,17 @@ like this:
 {
 	type: 0 // An enum value. Can be one of the following from the `QwickMaffs.Error` enum:
 	        // UnbalancedParenthesis: There are too few or too many parentesis. If there are too few, pos will be at
-			//                        the end of the string.
-			//
-			// UnexpectedSymbol: A symbol that we don't know what to do with.
-			//
-			// IncorrectNumberOfParameters: The operator at the given position cannot execute, because it doesn't have
-			//                              the needed numbers.
-			//
-			// MultipleNumbers: After executing all the operators, there are more than one number left. Pos is the
-			//                  position of the second number
-			//
-			// NoNumbers: The expression or a subexpression in parentesis contains no numbers.
+	        //                        the end of the string.
+	        //
+	        // UnexpectedSymbol: A symbol that we don't know what to do with.
+	        //
+	        // IncorrectNumberOfParameters: The operator at the given position cannot execute, because it doesn't have
+	        //                              the needed numbers.
+	        //
+	        // MultipleNumbers: After executing all the operators, there are more than one number left. Pos is the
+	        //                  position of the second number
+	        //
+	        // NoNumbers: The expression or a subexpression in parentesis contains no numbers.
 
 	pos: 0  // The position of the input string where the error occured.
 }
