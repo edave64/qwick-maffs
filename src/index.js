@@ -18,6 +18,70 @@ var QwickMaffs = {
 		 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
 		 */
 		ignoreErrors: 0,
+		operators: [
+			[
+				{
+					op: '+',
+					ass: 'right',
+					num: 1,
+					apply: (num) => num,
+				},
+				{
+					op: '-',
+					ass: 'right',
+					num: 1,
+					apply: (num) => -num,
+				},
+			],
+			[
+				{
+					op: '^',
+					ass: 'left',
+					num: 2,
+					apply: (x, y) => Math.pow(x, y),
+				},
+				{
+					op: '²',
+					ass: 'left',
+					num: 1,
+					apply: (x) => Math.pow(x, 2),
+				},
+				{
+					op: '³',
+					ass: 'left',
+					num: 1,
+					apply: (x) => Math.pow(x, 3),
+				},
+			],
+			[
+				{
+					op: '*',
+					ass: 'left',
+					num: 2,
+					apply: (x, y) => x * y,
+				},
+				{
+					op: '/',
+					ass: 'left',
+					num: 2,
+					apply: (x, y) => x / y,
+				},
+			],
+			[
+				{
+					op: '+',
+					ass: 'left',
+					num: 2,
+					apply: (x, y) => x + y,
+				},
+				{
+					op: '-',
+					ass: 'left',
+					num: 2,
+					apply: (x, y) => x * y,
+				},
+			],
+		],
 	},
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -54,7 +118,7 @@ var QwickMaffs = {
  * and arrays of more tokens where there were parenthesis
  *
  * @param {string} str
- * @param {typeof QwickMaffs.DefaultOptions} [opts]
+ * @param {typeof QwickMaffs.DefaultOptions} opts
  * @return {QMToken[] | {error: number, pos: number}}
  * @private
  */
@@ -65,8 +129,14 @@ function tokenize(str, opts) {
 	/** @type {QMToken[]} */
 	var currentList = [];
 	var stack = [];
+	var ops = new Set(opts.operators.flatMap((x) => x.map((y) => y.op)));
+
 	for (var i = 0; i < str.length; ++i) {
 		if (whitespaceReg.test(str[i])) continue;
+		if (ops.has(str[i])) {
+			currentList.push({ value: str[i], pos: i });
+			continue;
+		}
 		switch (str[i]) {
 			case '(':
 				var newList = [];
@@ -89,15 +159,6 @@ function tokenize(str, opts) {
 				} else {
 					currentList = stack.pop();
 				}
-				break;
-			case '+':
-			case '-':
-			case '*':
-			case '/':
-			case '^':
-			case '²':
-			case '³':
-				currentList.push({ value: str[i], pos: i });
 				break;
 			default:
 				var match = str.substring(i).match(numberReg);
@@ -279,6 +340,10 @@ function execTokenList(tokens, opts) {
 	}
 	return tokens[0].value;
 }
+
+/**
+ * @typedef {({value: number | string, pos: number}|QMToken[])} QMToken
+ */
 
 /**
  * @typedef {({value: number | string, pos: number}|QMToken[])} QMToken
