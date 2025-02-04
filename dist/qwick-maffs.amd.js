@@ -19,6 +19,74 @@ var QwickMaffs = {
 		 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
 		 */
 		ignoreErrors: 0,
+		/**
+		 * @type {Op[]}
+		 */
+		operators: [
+				{
+					op: '+',
+					ass: 'right',
+					num: 1,
+					precedence: 1,
+					apply: (num) => num,
+				},
+				{
+					op: '-',
+					ass: 'right',
+					num: 1,
+					precedence: 1,
+					apply: (num) => -num,
+				},
+				{
+					op: '^',
+					ass: 'left',
+					num: 2,
+					precedence: 2,
+					apply: (x, y) => Math.pow(x, y),
+				},
+				{
+					op: '²',
+					ass: 'left',
+					num: 1,
+					precedence: 2,
+					apply: (x) => Math.pow(x, 2),
+				},
+				{
+					op: '³',
+					ass: 'left',
+					num: 1,
+					precedence: 2,
+					apply: (x) => Math.pow(x, 3),
+				},
+				{
+					op: '*',
+					ass: 'left',
+					num: 2,
+					precedence: 3,
+					apply: (x, y) => x * y,
+				},
+				{
+					op: '/',
+					ass: 'left',
+					num: 2,
+					precedence: 3,
+					apply: (x, y) => x / y,
+				},
+				{
+					op: '+',
+					ass: 'left',
+					num: 2,
+					precedence: 4,
+					apply: (x, y) => x + y,
+				},
+				{
+					op: '-',
+					ass: 'left',
+					num: 2,
+					precedence: 4,
+					apply: (x, y) => x * y,
+				},
+		],
 	},
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -52,10 +120,10 @@ var QwickMaffs = {
 
 /**
  * Takes an input strings and returns a list of tokens, in the form of js numbers for numbers, strings for operators
- * and arrays of more tokens where there were parenthesis
+ * and arrays of more tokens where there were parentheses
  *
  * @param {string} str
- * @param {typeof QwickMaffs.DefaultOptions} [opts]
+ * @param {typeof QwickMaffs.DefaultOptions} opts
  * @return {QMToken[] | {error: number, pos: number}}
  * @private
  */
@@ -66,8 +134,14 @@ function tokenize(str, opts) {
 	/** @type {QMToken[]} */
 	var currentList = [];
 	var stack = [];
+	var ops = new Set(opts.operators.map((x) => x.op));
+
 	for (var i = 0; i < str.length; ++i) {
 		if (whitespaceReg.test(str[i])) continue;
+		if (ops.has(str[i])) {
+			currentList.push({ value: str[i], pos: i });
+			continue;
+		}
 		switch (str[i]) {
 			case '(':
 				var newList = [];
@@ -90,15 +164,6 @@ function tokenize(str, opts) {
 				} else {
 					currentList = stack.pop();
 				}
-				break;
-			case '+':
-			case '-':
-			case '*':
-			case '/':
-			case '^':
-			case '²':
-			case '³':
-				currentList.push({ value: str[i], pos: i });
 				break;
 			default:
 				var match = str.substring(i).match(numberReg);
@@ -170,11 +235,28 @@ function tokenize(str, opts) {
  * Takes a string containing either a number or a simple numeric expression
  * @param {QMToken[]} tokens
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
+ * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @return {number|{error: number, pos: number}}
  * @private
  */
 function execTokenList(tokens, opts) {
-	var highestPrecedence = -1;
+	/** @type {Record<string, Op[]>} */
+	var lookup = {};
+
+	var operators = opts.operators;
+	for (var iOp = 0; iOp < operators.length; iOp++) {
+		var op = operators[iOp];
+		if (!lookup[op.op]) {
+			lookup[op.op] = [];
+		}
+		lookup[op.op].push(op);
+	}
+
+	/** @type {(number|Op)[]} */
+	var output = [];
+	/** @type {(Op)[]} */
+	var operatorStack = [];
+
 	for (var i = 0; i < tokens.length; ++i) {
 		var token = tokens[i];
 		if (token instanceof Array) {
@@ -184,119 +266,76 @@ function execTokenList(tokens, opts) {
 			}
 			tokens[i] = { value: ret, pos: token.pos };
 			continue;
-		}
-		if (typeof token.value === 'string') {
-			// Since precedence rules cause multiple scans of the token array, and the most common use is just
-			// adding or subtracting things, or even no ops at all, we check for the highest precedence operation
-			// first, when we need to resolve parens anyway. Then we can skip passes we don't need.
-			var p = precedence[token.value];
-			if (p > highestPrecedence) {
-				highestPrecedence = p;
-			}
-		}
-	}
-	for (p = highestPrecedence; p >= 1; --p) {
-		for (i = 0; i < tokens.length; ++i) {
-			var op;
-			token = tokens[i];
-			if (typeof token.value === 'number') continue;
-			if (p === 3) {
-				op = {
-					'²': function (a) {
-						return Math.pow(a, 2);
-					},
-					'³': function (a) {
-						return Math.pow(a, 3);
-					},
-					'^': function (a, b) {
-						return Math.pow(a, b);
-					},
-				}[token.value];
-			} else if (p === 2) {
-				op = {
-					'*': function (a, b) {
-						return a * b;
-					},
-					'/': function (a, b) {
-						return a / b;
-					},
-				}[token.value];
-			} else {
-				op = {
-					'+': function (a, b) {
-						return a + b;
-					},
-					'-': function (a, b) {
-						return a - b;
-					},
-				}[token.value];
-			}
-			if (!op) continue;
-			let a = expectNumber(tokens[i - 1], token.pos);
-			// Propagate error
-			if (typeof a === 'object') {
-				if (token.value === '+' || token.value === '-') {
-					let b = expectNumber(tokens[i + 1], token.pos);
-					if (typeof b === 'number') {
-						if (token.value === '+') {
-							tokens.splice(i, 2, { value: b, pos: token.pos });
-							continue;
-						} else {
-							tokens.splice(i, 2, { value: -b, pos: token.pos });
-							continue;
-						}
-					}
+		} else if (typeof token.value === 'string') {
+			// Intelligently select prefix, suffix or infix
+			var op = lookup[token.value][0];
+			if (op) {
+				while (operatorStack.length > 0 && (
+					(operatorStack[operatorStack.length - 1].precedence < op.precedence)
+					|| (operatorStack[operatorStack.length - 1].precedence === op.precedence && operatorStack[operatorStack.length - 1].ass === 'left'))) {
+					output.push(operatorStack.pop());
 				}
-				return a;
-			}
-			let b = 0;
-			if (op.length > 1) {
-				b = expectNumber(tokens[i + 1], token.pos);
-				// Propagate error
-				if (typeof b === 'object') return b;
-				tokens.splice(i - 1, 3, { value: op(a, b), pos: token.pos });
-				--i;
+				operatorStack.push(op);
 			} else {
-				tokens.splice(i - 1, 2, { value: op(a), pos: token.pos });
-				--i;
+				// Error?
+			}
+		} else if (typeof token.value === 'number') {
+			output.push(token.value);
+		}
+	}
+
+	while (operatorStack.length > 0) {
+		output.push(operatorStack.pop());
+	}
+
+	/** @type {number[]} */
+	var stack = [];
+
+	for (i = 0; i < output.length; ++i) {
+		var current = output[i];
+		if (typeof current === 'number') {
+			stack.push(current);
+		} else {
+			var needed = current.apply.length;
+			if (stack.length < needed) {
+				// TODO: ERROR
+			} else {
+				var data = stack.splice(stack.length - needed, needed);
+				stack.push(current.apply.apply(null, data));
 			}
 		}
 	}
-	if (tokens.length > 1) {
+
+	if (stack.length > 1) {
 		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
-			return tokens.reduce((a, b) => a.value * b.value);
+			return stack.reduce((a, b) => a * b);
 		} else {
 			return {
 				error: QwickMaffs.Error.MultipleNumbers,
-				pos: tokens[1].pos,
+				pos: 0 //tokens[1].pos,
 			};
 		}
 	}
-	if (tokens.length === 0) {
+	if (stack.length === 0) {
 		return {
 			error: QwickMaffs.Error.NoNumbers,
-			pos: tokens.pos || 0,
+			pos: 0//tokens.pos || 0,
 		};
 	}
-	return tokens[0].value;
+	return stack[0];
 }
 
 /**
  * @typedef {({value: number | string, pos: number}|QMToken[])} QMToken
  */
 
+/**
+ * @typedef {{ op: string, ass: 'right' | 'left',precedence: number, apply: ((num: number) => number) | ((x: number, y: number) => number)}} Op
+ */
+
 var numberReg = /^\d+/;
 var eReg = /^e[+-]?\d+/i;
 var whitespaceReg = /\s/g;
-var precedence = {
-	'+': 1,
-	'-': 1,
-	'*': 2,
-	'/': 2,
-	'^': 3,
-	'²': 3,
-	'³': 3,
-};
 
 /**
  * Checks if the given token is a number, returns an error otherwise
