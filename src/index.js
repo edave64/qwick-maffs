@@ -22,69 +22,87 @@ var QwickMaffs = {
 		 * @type {Op[]}
 		 */
 		operators: [
-				{
-					op: '+',
-					ass: 'right',
-					num: 1,
-					precedence: 1,
-					apply: (num) => num,
+			{
+				op: '+',
+				ass: 'prefix',
+				num: 1,
+				precedence: 1,
+				apply: function (num) {
+					return num;
 				},
-				{
-					op: '-',
-					ass: 'right',
-					num: 1,
-					precedence: 1,
-					apply: (num) => -num,
+			},
+			{
+				op: '-',
+				ass: 'prefix',
+				num: 1,
+				precedence: 1,
+				apply: function (num) {
+					return -num;
 				},
-				{
-					op: '^',
-					ass: 'left',
-					num: 2,
-					precedence: 2,
-					apply: (x, y) => Math.pow(x, y),
+			},
+			{
+				op: '^',
+				ass: 'left',
+				num: 2,
+				precedence: 2,
+				apply: function (x, y) {
+					return Math.pow(x, y);
 				},
-				{
-					op: '²',
-					ass: 'left',
-					num: 1,
-					precedence: 2,
-					apply: (x) => Math.pow(x, 2),
+			},
+			{
+				op: '²',
+				ass: 'suffix',
+				num: 1,
+				precedence: 2,
+				apply: function (num) {
+					return Math.pow(num, 2);
 				},
-				{
-					op: '³',
-					ass: 'left',
-					num: 1,
-					precedence: 2,
-					apply: (x) => Math.pow(x, 3),
+			},
+			{
+				op: '³',
+				ass: 'suffix',
+				num: 1,
+				precedence: 2,
+				apply: function (num) {
+					return Math.pow(num, 3);
 				},
-				{
-					op: '*',
-					ass: 'left',
-					num: 2,
-					precedence: 3,
-					apply: (x, y) => x * y,
+			},
+			{
+				op: '*',
+				ass: 'left',
+				num: 2,
+				precedence: 3,
+				apply: function (x, y) {
+					return x * y;
 				},
-				{
-					op: '/',
-					ass: 'left',
-					num: 2,
-					precedence: 3,
-					apply: (x, y) => x / y,
+			},
+			{
+				op: '/',
+				ass: 'left',
+				num: 2,
+				precedence: 3,
+				apply: function (x, y) {
+					return x / y;
 				},
-				{
-					op: '+',
-					ass: 'left',
-					num: 2,
-					precedence: 4,
-					apply: (x, y) => x + y,
+			},
+			{
+				op: '+',
+				ass: 'left',
+				num: 2,
+				precedence: 4,
+				apply: function (x, y) {
+					return x + y;
 				},
-				{
-					op: '-',
-					ass: 'left',
-					num: 2,
-					precedence: 4,
-					apply: (x, y) => x * y,
+			},
+			{
+				op: '-',
+				ass: 'left',
+				num: 2,
+				precedence: 4,
+				apply: function (x, y) {
+					return x - y;
 				},
+			},
 		],
 	},
 	Error: {
@@ -94,7 +112,7 @@ var QwickMaffs = {
 		MultipleNumbers: 8,
 		NoNumbers: 16,
 	},
-	/**
+	/**W
 	 * Takes a string containing either a number or a simple numeric expression
 	 *
 	 * @param {string} str - A simple arithmetic expression
@@ -133,7 +151,11 @@ function tokenize(str, opts) {
 	/** @type {QMToken[]} */
 	var currentList = [];
 	var stack = [];
-	var ops = new Set(opts.operators.map((x) => x.op));
+	var ops = new Set(
+		opts.operators.map(function (x) {
+			return x.op;
+		})
+	);
 
 	for (var i = 0; i < str.length; ++i) {
 		if (whitespaceReg.test(str[i])) continue;
@@ -251,10 +273,11 @@ function execTokenList(tokens, opts) {
 		lookup[op.op].push(op);
 	}
 
-	/** @type {(number|Op)[]} */
+	/** @type {(number|{op:Op, pos: number })[]} */
 	var output = [];
-	/** @type {(Op)[]} */
+	/** @type {({op:Op, pos: number })[]} */
 	var operatorStack = [];
+	var canPrefix = true;
 
 	for (var i = 0; i < tokens.length; ++i) {
 		var token = tokens[i];
@@ -263,23 +286,36 @@ function execTokenList(tokens, opts) {
 			if (typeof ret === 'object') {
 				return ret;
 			}
-			tokens[i] = { value: ret, pos: token.pos };
-			continue;
+			output.push(ret);
+			canPrefix = false;
 		} else if (typeof token.value === 'string') {
 			// Intelligently select prefix, suffix or infix
-			var op = lookup[token.value][0];
+			var ops = lookup[token.value];
+			var op = canPrefix
+				? ops.filter(function (x) { return x.ass === 'prefix' })[0]
+				: ops.filter(function (x) { return x.ass !== 'prefix' })[0];
 			if (op) {
-				while (operatorStack.length > 0 && (
-					(operatorStack[operatorStack.length - 1].precedence < op.precedence)
-					|| (operatorStack[operatorStack.length - 1].precedence === op.precedence && operatorStack[operatorStack.length - 1].ass === 'left'))) {
-					output.push(operatorStack.pop());
+				if (op.apply.length > 0) {
 				}
-				operatorStack.push(op);
+				while (operatorStack.length > 0) {
+					var previous = operatorStack[operatorStack.length - 1].op;
+					if (
+						previous.precedence < op.precedence ||
+						(previous.precedence === op.precedence && previous.ass === 'left')
+					) {
+						output.push(operatorStack.pop());
+					} else {
+						break;
+					}
+				}
+				operatorStack.push({ op: op, pos: token.pos });
+				canPrefix = op.ass === 'prefix';
 			} else {
 				// Error?
 			}
 		} else if (typeof token.value === 'number') {
 			output.push(token.value);
+			canPrefix = false;
 		}
 	}
 
@@ -295,30 +331,36 @@ function execTokenList(tokens, opts) {
 		if (typeof current === 'number') {
 			stack.push(current);
 		} else {
-			var needed = current.apply.length;
+			var func = current.op.apply;
+			var needed = func.length;
 			if (stack.length < needed) {
-				// TODO: ERROR
+				return {
+					error: QwickMaffs.Error.IncorrectNumberOfParameters,
+					pos: current.pos,
+				};
 			} else {
 				var data = stack.splice(stack.length - needed, needed);
-				stack.push(current.apply.apply(null, data));
+				stack.push(func.apply(null, data));
 			}
 		}
 	}
 
 	if (stack.length > 1) {
 		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
-			return stack.reduce((a, b) => a * b);
+			return stack.reduce(function (a, b) {
+				return a * b;
+			});
 		} else {
 			return {
 				error: QwickMaffs.Error.MultipleNumbers,
-				pos: 0 //tokens[1].pos,
+				pos: 0, //tokens[1].pos,
 			};
 		}
 	}
 	if (stack.length === 0) {
 		return {
 			error: QwickMaffs.Error.NoNumbers,
-			pos: 0//tokens.pos || 0,
+			pos: 0, //tokens.pos || 0,
 		};
 	}
 	return stack[0];
@@ -329,7 +371,7 @@ function execTokenList(tokens, opts) {
  */
 
 /**
- * @typedef {{ op: string, ass: 'right' | 'left',precedence: number, apply: ((num: number) => number) | ((x: number, y: number) => number)}} Op
+ * @typedef {{ op: string, ass: 'right' | 'left' | 'prefix' | 'suffix', precedence: number, apply: ((num: number) => number) | ((x: number, y: number) => number)}} Op
  */
 
 var numberReg = /^\d+/;
