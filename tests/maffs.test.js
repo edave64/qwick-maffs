@@ -143,6 +143,13 @@ describe('Errors', function () {
 	});
 
 	test('"* ²"', function () {
+		expect(QwickMaffs.exec('* ²')).toStrictEqual({
+			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+			pos: 2,
+		});
+	});
+
+	test('"* +"', function () {
 		expect(QwickMaffs.exec('* +')).toStrictEqual({
 			error: QwickMaffs.Error.IncorrectNumberOfParameters,
 			pos: 0,
