@@ -393,19 +393,3 @@ function execTokenList(tokens, opts) {
 var numberReg = /^\d+/;
 var eReg = /^e[+-]?\d+/i;
 var whitespaceReg = /\s/g;
-
-/**
- * Checks if the given token is a number, returns an error otherwise
- *
- * @param {QMToken} value
- * @param {number} pos
- * @returns {{error: number, pos: number} | number}
- */
-function expectNumber(value, pos) {
-	if (!value || typeof value.value !== 'number')
-		return {
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
-			pos: pos,
-		};
-	return value.value;
-}
