@@ -108,7 +108,7 @@ var QwickMaffs = {
 	 *
 	 * @param {string} str - A simple arithmetic expression
 	 * @param {typeof QwickMaffs.DefaultOptions} [opts] - Configuration
-	 * @return {number|{error: number, pos: number}} - A number if the expression was successfully executed, otherwise an error object
+	 * @return {number|QMError} - A number if the expression was successfully executed, otherwise an error object
 	 */
 	exec: function (str, opts) {
 		if (!opts) opts = QwickMaffs.DefaultOptions;
@@ -132,15 +132,15 @@ var QwickMaffs = {
  *
  * @param {string} str
  * @param {typeof QwickMaffs.DefaultOptions} opts
- * @return {TokenList | {error: number, pos: number}}
+ * @return {TokenList | QMError}
  * @private
  */
 function tokenize(str, opts) {
 	// To parse parentheses without recursion, an opening parenthesis pushes the currentList of tokens onto the
 	// stack and creates a new, child currentList. A closing parenthesis then pops the currentList back from the
 	// stack
-	/** @type {TokenList} */
-	var currentList = [];
+	var currentList = /** @type {TokenList} */ [];
+	currentList.pos = 0;
 
 	/** @type {TokenList[]} */
 	var stack = [];
@@ -248,6 +248,7 @@ function tokenize(str, opts) {
 
 /**
  * Takes a string containing either a number or a simple numeric expression
+ *
  * @param {TokenList} tokens
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
  * @param {typeof QwickMaffs.DefaultOptions} [opts]
@@ -267,11 +268,19 @@ function execTokenList(tokens, opts) {
 		lookup[op.op].push(op);
 	}
 
-	/** @type {{val:Op | number, pos: number }[]} */
-	var output = [];
+	/** @type {number[]} */
+	var numberStack = [];
+
+	// The token position of the second number on the stack (Index 1)
+	// This is the position of the multiple numbers error, should it be fired.
+	// As random as it seems to track this, it saves us from saving all the
+	// positions
+	var secondPos = -1;
+
 	/** @type {({val:Op, pos: number })[]} */
 	var operatorStack = [];
 	var canPrefix = true;
+	var error = null;
 
 	for (var i = 0; i < tokens.length; ++i) {
 		var token = tokens[i];
@@ -280,7 +289,7 @@ function execTokenList(tokens, opts) {
 			if (typeof ret === 'object') {
 				return ret;
 			}
-			output.push({ val: ret, pos: token.pos });
+			pushOnStack(ret, token.pos);
 			canPrefix = false;
 		} else if (typeof token.value === 'string') {
 			// Intelligently select prefix, suffix or infix
@@ -304,7 +313,9 @@ function execTokenList(tokens, opts) {
 						previous.precedence < op.precedence ||
 						(previous.precedence === op.precedence && previous.ass === 'left')
 					) {
-						output.push(operatorStack.pop());
+						if ((error = execOp(previous, operatorStack.pop().pos))) {
+							return error;
+						}
 					} else {
 						break;
 					}
@@ -315,60 +326,67 @@ function execTokenList(tokens, opts) {
 				// Error?
 			}
 		} else if (typeof token.value === 'number') {
-			output.push({ val: token.value, pos: token.pos });
+			pushOnStack(token.value, token.pos);
 			canPrefix = false;
 		}
 	}
 
-	while (operatorStack.length > 0) {
-		output.push(operatorStack.pop());
-	}
-
-	/** @type {{val:number, pos: number}[]} */
-	var stack = [];
-
-	for (i = 0; i < output.length; ++i) {
-		var current = output[i];
-		if (typeof current.val === 'number') {
-			stack.push(current);
-		} else {
-			var func = current.val.apply;
-			var needed = func.length;
-			if (stack.length < needed) {
-				return {
-					error: QwickMaffs.Error.IncorrectNumberOfParameters,
-					pos: current.pos,
-				};
-			} else {
-				var data = stack
-					.splice(stack.length - needed, needed)
-					.map(function (x) {
-						return x.val;
-					});
-				stack.push({ val: func.apply(null, data), pos: current.pos });
-			}
+	for (i = operatorStack.length - 1; i >= 0; --i) {
+		op = operatorStack[i];
+		if ((error = execOp(op.val, op.pos))) {
+			return error;
 		}
 	}
 
-	if (stack.length > 1) {
+	if (numberStack.length > 1) {
 		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
-			return stack.reduce(function (a, b) {
-				return a * b.val;
-			}, 1);
+			return numberStack.reduce(function (a, b) {
+				return a * b;
+			});
 		} else {
 			return {
 				error: QwickMaffs.Error.MultipleNumbers,
-				pos: stack[1].pos,
+				pos: secondPos,
 			};
 		}
 	}
-	if (stack.length === 0) {
+	if (numberStack.length === 0) {
 		return {
 			error: QwickMaffs.Error.NoNumbers,
 			pos: tokens.pos || 0,
 		};
 	}
-	return stack[0].val;
+	return numberStack[0];
+
+	/**
+	 * @param {number} x
+	 * @param {number} pos
+	 */
+	function pushOnStack(x, pos) {
+		numberStack.push(x);
+		if (numberStack.length === 2) {
+			secondPos = pos;
+		}
+	}
+
+	/**
+	 * @param {Op} op
+	 * @param {number} pos
+	 * @return {QMError|undefined}
+	 */
+	function execOp(op, pos) {
+		var func = op.apply;
+		var needed = func.length;
+		if (numberStack.length < needed) {
+			return {
+				error: QwickMaffs.Error.IncorrectNumberOfParameters,
+				pos: pos,
+			};
+		} else {
+			var data = numberStack.splice(numberStack.length - needed, needed);
+			pushOnStack(func.apply(null, data), pos);
+		}
+	}
 }
 
 /**
@@ -376,6 +394,8 @@ function execTokenList(tokens, opts) {
  */
 
 /** @typedef {(QMToken|TokenList)[] & {pos: number}} TokenList */
+
+/** @typedef {{error: number, pos: number}} QMError */
 
 /**
  * @typedef {{ op: string, ass: 'right' | 'left' | 'prefix' | 'suffix', precedence: number, apply: ((num: number) => number) | ((x: number, y: number) => number)}} Op
