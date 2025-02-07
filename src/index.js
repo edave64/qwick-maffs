@@ -25,7 +25,6 @@ var QwickMaffs = {
 			{
 				op: '+',
 				ass: 'prefix',
-				num: 1,
 				precedence: 1,
 				apply: function (num) {
 					return num;
@@ -34,7 +33,6 @@ var QwickMaffs = {
 			{
 				op: '-',
 				ass: 'prefix',
-				num: 1,
 				precedence: 1,
 				apply: function (num) {
 					return -num;
@@ -43,7 +41,6 @@ var QwickMaffs = {
 			{
 				op: '^',
 				ass: 'left',
-				num: 2,
 				precedence: 2,
 				apply: function (x, y) {
 					return Math.pow(x, y);
@@ -52,7 +49,6 @@ var QwickMaffs = {
 			{
 				op: '²',
 				ass: 'suffix',
-				num: 1,
 				precedence: 2,
 				apply: function (num) {
 					return Math.pow(num, 2);
@@ -61,7 +57,6 @@ var QwickMaffs = {
 			{
 				op: '³',
 				ass: 'suffix',
-				num: 1,
 				precedence: 2,
 				apply: function (num) {
 					return Math.pow(num, 3);
@@ -70,7 +65,6 @@ var QwickMaffs = {
 			{
 				op: '*',
 				ass: 'left',
-				num: 2,
 				precedence: 3,
 				apply: function (x, y) {
 					return x * y;
@@ -79,7 +73,6 @@ var QwickMaffs = {
 			{
 				op: '/',
 				ass: 'left',
-				num: 2,
 				precedence: 3,
 				apply: function (x, y) {
 					return x / y;
@@ -88,7 +81,6 @@ var QwickMaffs = {
 			{
 				op: '+',
 				ass: 'left',
-				num: 2,
 				precedence: 4,
 				apply: function (x, y) {
 					return x + y;
@@ -97,7 +89,6 @@ var QwickMaffs = {
 			{
 				op: '-',
 				ass: 'left',
-				num: 2,
 				precedence: 4,
 				apply: function (x, y) {
 					return x - y;
