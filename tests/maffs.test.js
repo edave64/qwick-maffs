@@ -76,6 +76,15 @@ describe('Order of operations', function () {
 	test('"((1 + 2) * 4) ^ 5" -> 248832', function () {
 		expect(QwickMaffs.exec('((1 + 2) * 4) ^ 5')).toBe(248832);
 	});
+	test('"--4 -> 4"', function () {
+		expect(QwickMaffs.exec('--4')).toBe(4);
+	});
+	test('"4²³ -> 256"', function () {
+		expect(QwickMaffs.exec('4²²')).toBe(256);
+	});
+	test('"--4²² -> 256"', function () {
+		expect(QwickMaffs.exec('--4²²')).toBe(256);
+	});
 });
 
 describe('Errors', function () {
