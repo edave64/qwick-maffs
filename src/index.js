@@ -119,10 +119,11 @@ var QwickMaffs = {
 				}
 			}
 		}
-		var tokens = tokenize(str, opts);
+		var ops = optimizeOps(opts.operators);
+		var tokens = tokenize(str, ops, opts);
 		// Propagate error
 		if (!(tokens instanceof Array)) return tokens;
-		return execTokenList(tokens, opts);
+		return execTokenList(tokens, ops, opts);
 	},
 };
 
@@ -131,11 +132,12 @@ var QwickMaffs = {
  * and arrays of more tokens where there were parentheses
  *
  * @param {string} str
+ * @param {Record<string, Op[]>} operators
  * @param {typeof QwickMaffs.DefaultOptions} opts
  * @return {TokenList | QMError}
  * @private
  */
-function tokenize(str, opts) {
+function tokenize(str, operators, opts) {
 	// To parse parentheses without recursion, an opening parenthesis pushes the currentList of tokens onto the
 	// stack and creates a new, child currentList. A closing parenthesis then pops the currentList back from the
 	// stack
@@ -144,15 +146,11 @@ function tokenize(str, opts) {
 
 	/** @type {TokenList[]} */
 	var stack = [];
-	var ops = new Set(
-		opts.operators.map(function (x) {
-			return x.op;
-		})
-	);
+	var ops = Object.keys(operators);
 
 	for (var i = 0; i < str.length; ++i) {
 		if (whitespaceReg.test(str[i])) continue;
-		if (ops.has(str[i])) {
+		if (ops.indexOf(str[i]) !== -1) {
 			currentList.push({ value: str[i], pos: i });
 			continue;
 		}
@@ -181,6 +179,7 @@ function tokenize(str, opts) {
 				}
 				break;
 			default:
+				// No operator, no parens -> Must be number
 				var match = str.substring(i).match(numberReg);
 				var num = '';
 				if (match && match.index === 0) {
@@ -250,24 +249,12 @@ function tokenize(str, opts) {
  * Takes a string containing either a number or a simple numeric expression
  *
  * @param {TokenList} tokens
- * @param {typeof QwickMaffs.DefaultOptions} [opts]
- * @param {typeof QwickMaffs.DefaultOptions} [opts]
+ * @param {Record<string, Op[]>} operators
+ * @param {typeof QwickMaffs.DefaultOptions} opts
  * @return {number|{error: number, pos: number}}
  * @private
  */
-function execTokenList(tokens, opts) {
-	/** @type {Record<string, Op[]>} */
-	var lookup = {};
-
-	var operators = opts.operators;
-	for (var iOp = 0; iOp < operators.length; iOp++) {
-		var op = operators[iOp];
-		if (!lookup[op.op]) {
-			lookup[op.op] = [];
-		}
-		lookup[op.op].push(op);
-	}
-
+function execTokenList(tokens, operators, opts) {
 	/** @type {number[]} */
 	var numberStack = [];
 
@@ -285,7 +272,7 @@ function execTokenList(tokens, opts) {
 	for (var i = 0; i < tokens.length; ++i) {
 		var token = tokens[i];
 		if (token instanceof Array) {
-			var ret = execTokenList(/** @type {TokenList} */ token, opts);
+			var ret = execTokenList(/** @type {TokenList} */ token, operators, opts);
 			if (typeof ret === 'object') {
 				return ret;
 			}
@@ -293,7 +280,7 @@ function execTokenList(tokens, opts) {
 			canPrefix = false;
 		} else if (typeof token.value === 'string') {
 			// Intelligently select prefix, suffix or infix
-			var ops = lookup[token.value];
+			var ops = operators[token.value];
 			var op = canPrefix
 				? ops.filter(function (x) {
 						return x.ass === 'prefix';
@@ -313,9 +300,8 @@ function execTokenList(tokens, opts) {
 						previous.precedence < op.precedence ||
 						(previous.precedence === op.precedence && previous.ass === 'left')
 					) {
-						if ((error = execOp(previous, operatorStack.pop().pos))) {
+						if ((error = execOp(previous, operatorStack.pop().pos)))
 							return error;
-						}
 					} else {
 						break;
 					}
@@ -333,9 +319,7 @@ function execTokenList(tokens, opts) {
 
 	for (i = operatorStack.length - 1; i >= 0; --i) {
 		op = operatorStack[i];
-		if ((error = execOp(op.val, op.pos))) {
-			return error;
-		}
+		if ((error = execOp(op.val, op.pos))) return error;
 	}
 
 	if (numberStack.length > 1) {
@@ -387,6 +371,24 @@ function execTokenList(tokens, opts) {
 			pushOnStack(func.apply(null, data), pos);
 		}
 	}
+}
+
+/**
+ * @param {Op[]} ops
+ * @return {Record<string, Op[]>}
+ */
+function optimizeOps(ops) {
+	var lookup = /** @type {Record<string, Op[]>} */ {};
+
+	for (var iOp = 0; iOp < ops.length; iOp++) {
+		var op = ops[iOp];
+		if (!lookup[op.op]) {
+			lookup[op.op] = [];
+		}
+		lookup[op.op].push(op);
+	}
+
+	return lookup;
 }
 
 /**
