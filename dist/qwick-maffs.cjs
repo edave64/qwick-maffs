@@ -307,7 +307,7 @@ function execTokenList(tokens, operators, opts) {
 					}
 				}
 				operatorStack.push({ val: op, pos: token.pos });
-				canPrefix = op.ass === 'prefix';
+				canPrefix = op.ass !== 'suffix';
 			} else {
 				// Error?
 			}
