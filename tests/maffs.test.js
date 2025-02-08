@@ -85,6 +85,9 @@ describe('Order of operations', function () {
 	test('"--4²² -> 256"', function () {
 		expect(QwickMaffs.exec('--4²²')).toBe(256);
 	});
+	test('"8+-4 -> 4"', function () {
+		expect(QwickMaffs.exec('8+-4')).toBe(4);
+	});
 });
 
 describe('Errors', function () {
@@ -161,7 +164,7 @@ describe('Errors', function () {
 	test('"* +"', function () {
 		expect(QwickMaffs.exec('* +')).toStrictEqual({
 			error: QwickMaffs.Error.IncorrectNumberOfParameters,
-			pos: 0,
+			pos: 2,
 		});
 	});
 
