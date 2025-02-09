@@ -118,10 +118,24 @@ const result = QuickMaffs.exec('4 + 5 * 6', {
 
 	decimalSep: /[,.]/, <span class="comment">// The allowed decimal separator. This must always be a
 	                    // single character in length.</span>
-	supportENotation: true, <span class="comment">/// If true, e-notation (like 4.5e5) is supported.</span>
-	ignoreErrors: 0, <span class="comment">// errors that will be silently ignored. Set like this:
-	                 // `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis
-	                 // | QwickMaffs.Error.NoNumbers`</span>
+
+	<span class="comment">// Makes it exec will not return these errors. The parser will instead try to take a best guess
+	// at what the user tried to accomplish.
+	// E.g. MultipleNumbers will multiply the numbers, and UnbalancedParenthesis will be balanced
+	// automatically</span>
+	ignoreErrors: QwickMaffs.Error.MultipleNumbers | QwickMaffs.Error.UnbalancedParenthesis,
+
+	<span class="comment">// Sets the operators supported in the expression. Here, we take all default operators and add
+	// "%", which divides a number by 100</span>
+	operators: [
+		...QwickMaffs.DefaultOptions.operators,
+		{
+			op: '%',
+			assoc: 'suffix',
+			precedence: 3,
+			apply: (x) => x / 100,
+		},
+	]
 });
 			</code></pre>
 		</p>
