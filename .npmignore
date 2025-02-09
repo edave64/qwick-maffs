@@ -1,6 +1,10 @@
-create-dist.js
 .vscode
 .idea
+coverage
 tests
 src
+biome.json
 index.html
+tsconfig.json
+tsconfig.esm.json
+tsconfig.umd.json

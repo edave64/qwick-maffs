@@ -4,18 +4,16 @@ A small, (runtime-)dependency-free library to support simple arithmetic in input
 
 ## Install
 
-QwickMaffs is available as an npm package.
+QwickMaffs is available as an NPM package.
 
 ```
 npm install qwick-maffs
 ```
 
-Alternatively, it supports several packaging schemes. The files you need to ship it can be found in the "dist" directory.
+Alternatively, you can find the files needed for shipping the library in the dist folder.
 
-For a classic library for your browser that exports a simple global variable "QwickMaffs", use
-[qwick-maffs.global.js](./dist/qwick-maffs.global.js). We also provide
-[an AMD module](./dist/qwick-maffs.amd.js), [a commonjs module](./dist/qwick-maffs.cjs)
-and [an esmodule](./dist/qwick-maffs.mjs).
+You can either use the [UMD version](./dist/umd/index.js) for commonJs and AMD,
+or [an esmodule](./dist/esm/index.js).
 
 ## Usage
 
@@ -33,6 +31,23 @@ QwickMaffs.exec('4 + 4', {
 
 	supportENotation: true, // Indicates if e-notation should be allowed. If false, it will complain about e not being
 	                        // an UnexpectedSymbol
+	
+	// Makes it exec will not return these errors. The parser will instead try to take a best guess at what the user
+	// tried to accomplish.
+	// E.g. MultipleNumbers will multiply the numbers, and UnbalancedParenthesis will be balanced automatically
+	ignoreErrors: QwickMaffs.Error.MultipleNumbers | QwickMaffs.Error.UnbalancedParenthesis,
+	
+	// Sets the operators supported in the expression. Here, we take all default operators and add "%", which divides a
+	// number by 100
+	operators: [
+		...QwickMaffs.DefaultOptions.operators,
+		{
+			op: '%',
+			assoc: 'suffix',
+			precedence: 3,
+			apply: (x) => x / 100,
+		},
+	]
 })
 ```
 
