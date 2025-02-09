@@ -1,7 +1,8 @@
 <html>
 	<head>
-		<script src="dist/qwick-maffs.global.js"></script>
-		<script>
+		<script type="module">
+			import QwickMaffs from './dist/esm/index.js';
+
 			/**
 			 * @param {KeyboardEvent|FocusEvent} event
 			 */
@@ -43,6 +44,8 @@
 					errors.innerHTML = text;
 				}
 			}
+
+			window.maffs = maffs;
 		</script>
 		<style>
 			body {

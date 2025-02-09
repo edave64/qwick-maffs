@@ -4,32 +4,31 @@
 	"description": "Support simple mathmatical expressions in numeric inputs. Written to be completely framework agnostic.",
 	"main": "index.js",
 	"scripts": {
-		"build": "node create-dist.js",
+		"build": "tsc && tsc --p tsconfig.esm.json && tsc --p tsconfig.umd.json",
 		"test": "jest"
 	},
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/edave64/qwick-maffs.git"
 	},
-	"keywords": [
-		"input",
-		"math",
-		"arithmetic"
-	],
+	"keywords": ["input", "math", "arithmetic"],
 	"author": "edave64",
-	"types": "./index.d.ts",
 	"license": "MIT",
 	"bugs": {
 		"url": "https://github.com/edave64/qwick-maffs/issues"
 	},
 	"homepage": "https://github.com/edave64/qwick-maffs#readme",
 	"devDependencies": {
-		"jest": "^29.7.0",
-		"prettier": "^3.0.3",
-		"prettier-plugin-organize-imports": "^3.2.4"
+		"@biomejs/biome": "^1.9.4",
+		"vitest": "^3.0.5"
 	},
+	"types": "./dist/index.d.ts",
 	"exports": {
-		"import": "./dist/qwick-maffs.mjs",
-		"require": "./dist/qwick-maffs.cjs"
+		"import": "./dist/esm/index.js",
+		"require": "./dist/umd/index.js",
+		"types": "./dist/index.d.ts"
+	},
+	"dependencies": {
+		"typescript": "^5.7.3"
 	}
 }

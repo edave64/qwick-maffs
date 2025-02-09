@@ -1,173 +1,143 @@
-define([], function () {
-// noinspection JSUnusedGlobalSymbols
 /*!
  * QwickMaffs 0.1.0 by edave64
  * Released under the MIT license: https://github.com/edave64/qwick-maffs/blob/main/LICENCE
  */
-var QwickMaffs = {
+
+const numberReg = /^\d+/;
+const eReg = /^e[+-]?\d+/i;
+const whitespaceReg = /\s/g;
+
+const QwickMaffs = {
 	DefaultOptions: {
-		/**
-		 * The allowed decimal separator. This must always be a single character in length.
-		 * @type {RegExp | String}
-		 */
 		decimalSep: /[,.]/,
-		/**
-		 * If true, e-notation (like 4.5e5) is supported.
-		 */
 		supportENotation: true,
-		/**
-		 * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
-		 */
 		ignoreErrors: 0,
-		/**
-		 * @type {Op[]}
-		 */
 		operators: [
 			{
 				op: '+',
 				ass: 'prefix',
 				precedence: 1,
-				apply: function (num) {
-					return num;
-				},
+				apply: (num: number) => num,
 			},
 			{
 				op: '-',
 				ass: 'prefix',
 				precedence: 1,
-				apply: function (num) {
-					return -num;
-				},
+				apply: (num: number) => -num,
 			},
 			{
 				op: '^',
 				ass: 'left',
 				precedence: 2,
-				apply: function (x, y) {
-					return Math.pow(x, y);
-				},
+				apply: (x, y) => x ** y,
 			},
 			{
 				op: '²',
 				ass: 'suffix',
 				precedence: 2,
-				apply: function (num) {
-					return Math.pow(num, 2);
-				},
+				apply: (num: number) => num ** 2,
 			},
 			{
 				op: '³',
 				ass: 'suffix',
 				precedence: 2,
-				apply: function (num) {
-					return Math.pow(num, 3);
-				},
+				apply: (num: number) => num ** 3,
 			},
 			{
 				op: '*',
 				ass: 'left',
 				precedence: 3,
-				apply: function (x, y) {
-					return x * y;
-				},
+				apply: (x, y) => x * y,
 			},
 			{
 				op: '/',
 				ass: 'left',
 				precedence: 3,
-				apply: function (x, y) {
-					return x / y;
-				},
+				apply: (x, y) => x / y,
 			},
 			{
 				op: '+',
 				ass: 'left',
 				precedence: 4,
-				apply: function (x, y) {
-					return x + y;
-				},
+				apply: (x, y) => x + y,
 			},
 			{
 				op: '-',
 				ass: 'left',
 				precedence: 4,
-				apply: function (x, y) {
-					return x - y;
-				},
+				apply: (x, y) => x - y,
 			},
 		],
-	},
+	} as QMOpts,
 	Error: {
 		UnbalancedParenthesis: 1,
 		UnexpectedSymbol: 2,
 		IncorrectNumberOfParameters: 4,
 		MultipleNumbers: 8,
 		NoNumbers: 16,
-	},
-	/**W
+	} as const,
+	/**
 	 * Takes a string containing either a number or a simple numeric expression
-	 *
-	 * @param {string} str - A simple arithmetic expression
-	 * @param {typeof QwickMaffs.DefaultOptions} [opts] - Configuration
-	 * @return {number|QMError} - A number if the expression was successfully executed, otherwise an error object
 	 */
-	exec: function (str, opts) {
-		if (!opts) opts = QwickMaffs.DefaultOptions;
-		else {
-			for (var key in QwickMaffs.DefaultOptions) {
-				if (!Object.prototype.hasOwnProperty.call(opts, key)) {
-					opts[key] = QwickMaffs.DefaultOptions[key];
-				}
-			}
-		}
-		var ops = optimizeOps(opts.operators);
-		var tokens = tokenize(str, ops, opts);
-		// Propagate error
-		if (!(tokens instanceof Array)) return tokens;
-		return execTokenList(tokens, ops, opts);
-	},
+	exec: exec,
 };
+
+function exec(str: string, opts?: Partial<QMOpts>): number | QMError {
+	const normalizedOpts = normalizeOpts(opts);
+	const ops = optimizeOps(normalizedOpts.operators);
+	const tokens = tokenize(str, ops, normalizedOpts);
+	// Propagate error
+	if ('error' in tokens) return tokens;
+	return execTokenList(tokens, ops, normalizedOpts);
+}
+
+function normalizeOpts(opts?: Partial<QMOpts>): QMOpts {
+	if (!opts) return QwickMaffs.DefaultOptions;
+	return {
+		...QwickMaffs.DefaultOptions,
+		...opts,
+	};
+}
 
 /**
  * Takes an input strings and returns a list of tokens, in the form of js numbers for numbers, strings for operators
  * and arrays of more tokens where there were parentheses
- *
- * @param {string} str
- * @param {Record<string, Op[]>} operators
- * @param {typeof QwickMaffs.DefaultOptions} opts
- * @return {TokenList | QMError}
- * @private
  */
-function tokenize(str, operators, opts) {
+function tokenize(
+	str: string,
+	operators: Record<string, QMOp[]>,
+	opts: typeof QwickMaffs.DefaultOptions,
+): TokenList | QMError {
 	// To parse parentheses without recursion, an opening parenthesis pushes the currentList of tokens onto the
 	// stack and creates a new, child currentList. A closing parenthesis then pops the currentList back from the
 	// stack
-	var currentList = /** @type {TokenList} */ [];
+	let currentList = [] as unknown as TokenList;
 	currentList.pos = 0;
 
-	/** @type {TokenList[]} */
-	var stack = [];
-	var ops = Object.keys(operators);
+	const stack: TokenList[] = [];
+	const ops = Object.keys(operators);
+	let i = 0;
 
-	for (var i = 0; i < str.length; ++i) {
+	for (; i < str.length; ++i) {
 		if (whitespaceReg.test(str[i])) continue;
 		if (ops.indexOf(str[i]) !== -1) {
 			currentList.push({ value: str[i], pos: i });
 			continue;
 		}
 		switch (str[i]) {
-			case '(':
-				var newList = /** @type {TokenList} */ [];
+			case '(': {
+				const newList = [] as unknown as TokenList;
 				newList.pos = i;
 				currentList.push(newList);
 				stack.push(currentList);
 				currentList = newList;
 				break;
+			}
 			case ')':
 				if (stack.length === 0) {
 					if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
 						// Move all already parsed elements into a sub-expression.
-						currentList = /** @type {TokenList} */ [currentList];
+						currentList = [currentList] as unknown as TokenList;
 						currentList.pos = currentList[0].pos;
 					} else {
 						return {
@@ -176,13 +146,13 @@ function tokenize(str, operators, opts) {
 						};
 					}
 				} else {
-					currentList = stack.pop();
+					currentList = stack.pop()!;
 				}
 				break;
-			default:
+			default: {
 				// No operator, no parens -> Must be number
-				var match = str.substring(i).match(numberReg);
-				var num = '';
+				let match = str.substring(i).match(numberReg);
+				let num = '';
 				if (match && match.index === 0) {
 					i += match[0].length;
 					num = match[0];
@@ -201,12 +171,11 @@ function tokenize(str, operators, opts) {
 					if (!match || match.index !== 0) {
 						if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
 							continue;
-						} else {
-							return {
-								error: QwickMaffs.Error.UnexpectedSymbol,
-								pos: i,
-							};
 						}
+						return {
+							error: QwickMaffs.Error.UnexpectedSymbol,
+							pos: i,
+						};
 					}
 					num += match[0];
 					i += match[0].length;
@@ -214,24 +183,27 @@ function tokenize(str, operators, opts) {
 					// We neither found a decimal sep, nor a number. This isn't a number.
 					if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
 						continue;
-					} else {
-						return {
-							error: QwickMaffs.Error.UnexpectedSymbol,
-							pos: i,
-						};
 					}
+					return {
+						error: QwickMaffs.Error.UnexpectedSymbol,
+						pos: i,
+					};
 				}
 				if (opts.supportENotation) {
-					var eMatch = str.substring(i).match(eReg);
+					const eMatch = str.substring(i).match(eReg);
 					if (eMatch && match.index === 0) {
 						num += eMatch[0];
 						i += eMatch[0].length;
 					}
 				}
-				currentList.push({ value: parseFloat(num), pos: i - num.length });
+				currentList.push({
+					value: Number.parseFloat(num),
+					pos: i - num.length,
+				});
 				i--;
 
 				break;
+			}
 		}
 	}
 	if (stack.length !== 0) {
@@ -248,32 +220,32 @@ function tokenize(str, operators, opts) {
 
 /**
  * Takes a string containing either a number or a simple numeric expression
- *
- * @param {TokenList} tokens
- * @param {Record<string, Op[]>} operators
- * @param {typeof QwickMaffs.DefaultOptions} opts
- * @return {number|{error: number, pos: number}}
- * @private
  */
-function execTokenList(tokens, operators, opts) {
-	/** @type {number[]} */
-	var numberStack = [];
+function execTokenList(
+	tokens: TokenList,
+	operators: Record<string, QMOp[]>,
+	opts: typeof QwickMaffs.DefaultOptions,
+): number | QMError {
+	const numberStack: number[] = [];
 
 	// The token position of the second number on the stack (Index 1)
 	// This is the position of the multiple numbers error, should it be fired.
 	// As random as it seems to track this, it saves us from saving all the
 	// positions
-	var secondPos = -1;
+	let secondPos = -1;
 
-	/** @type {({val:Op, pos: number })[]} */
-	var operatorStack = [];
-	var canPrefix = true;
-	var error = null;
+	const operatorStack: { val: QMOp; pos: number }[] = [];
+	let canPrefix = true;
+	let error = null;
 
-	for (var i = 0; i < tokens.length; ++i) {
-		var token = tokens[i];
+	for (let i = 0; i < tokens.length; ++i) {
+		const token = tokens[i];
 		if (token instanceof Array) {
-			var ret = execTokenList(/** @type {TokenList} */ token, operators, opts);
+			const ret = execTokenList(
+				/** @type {TokenList} */ token,
+				operators,
+				opts,
+			);
 			if (typeof ret === 'object') {
 				return ret;
 			}
@@ -281,14 +253,10 @@ function execTokenList(tokens, operators, opts) {
 			canPrefix = false;
 		} else if (typeof token.value === 'string') {
 			// Intelligently select prefix, suffix or infix
-			var ops = operators[token.value];
-			var op = canPrefix
-				? ops.filter(function (x) {
-						return x.ass === 'prefix';
-					})[0]
-				: ops.filter(function (x) {
-						return x.ass !== 'prefix';
-					})[0];
+			const ops = operators[token.value];
+			let op: QMOp | undefined = canPrefix
+				? ops.find((x) => x.ass === 'prefix')
+				: ops.find((x) => x.ass !== 'prefix');
 			if (!op) {
 				// TODO: Pretty sure whenever this is invoked, there is a not enough
 				//       number error.
@@ -296,12 +264,12 @@ function execTokenList(tokens, operators, opts) {
 			}
 			if (op) {
 				while (operatorStack.length > 0) {
-					var previous = operatorStack[operatorStack.length - 1].val;
+					const previous = operatorStack[operatorStack.length - 1].val;
 					if (
 						previous.precedence < op.precedence ||
 						(previous.precedence === op.precedence && previous.ass === 'left')
 					) {
-						if ((error = execOp(previous, operatorStack.pop().pos)))
+						if ((error = execOp(previous, operatorStack.pop()!.pos)))
 							return error;
 					} else {
 						break;
@@ -318,22 +286,19 @@ function execTokenList(tokens, operators, opts) {
 		}
 	}
 
-	for (i = operatorStack.length - 1; i >= 0; --i) {
-		op = operatorStack[i];
+	for (let i = operatorStack.length - 1; i >= 0; --i) {
+		const op = operatorStack[i];
 		if ((error = execOp(op.val, op.pos))) return error;
 	}
 
 	if (numberStack.length > 1) {
 		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
-			return numberStack.reduce(function (a, b) {
-				return a * b;
-			});
-		} else {
-			return {
-				error: QwickMaffs.Error.MultipleNumbers,
-				pos: secondPos,
-			};
+			return numberStack.reduce((a, b) => a * b);
 		}
+		return {
+			error: QwickMaffs.Error.MultipleNumbers,
+			pos: secondPos,
+		};
 	}
 	if (numberStack.length === 0) {
 		return {
@@ -343,46 +308,32 @@ function execTokenList(tokens, operators, opts) {
 	}
 	return numberStack[0];
 
-	/**
-	 * @param {number} x
-	 * @param {number} pos
-	 */
-	function pushOnStack(x, pos) {
+	function pushOnStack(x: number, pos: number) {
 		numberStack.push(x);
 		if (numberStack.length === 2) {
 			secondPos = pos;
 		}
 	}
 
-	/**
-	 * @param {Op} op
-	 * @param {number} pos
-	 * @return {QMError|undefined}
-	 */
-	function execOp(op, pos) {
-		var func = op.apply;
-		var needed = func.length;
+	function execOp(op: QMOp, pos: number): QMError | undefined {
+		const func: (...num: number[]) => number = op.apply;
+		const needed = func.length;
 		if (numberStack.length < needed) {
 			return {
 				error: QwickMaffs.Error.IncorrectNumberOfParameters,
 				pos: pos,
 			};
-		} else {
-			var data = numberStack.splice(numberStack.length - needed, needed);
-			pushOnStack(func.apply(null, data), pos);
 		}
+		const data = numberStack.splice(numberStack.length - needed, needed);
+		pushOnStack(func.apply(null as unknown, data), pos);
 	}
 }
 
-/**
- * @param {Op[]} ops
- * @return {Record<string, Op[]>}
- */
-function optimizeOps(ops) {
-	var lookup = /** @type {Record<string, Op[]>} */ {};
+function optimizeOps(ops: QMOp[]): Record<string, QMOp[]> {
+	const lookup: Record<string, QMOp[]> = {};
 
-	for (var iOp = 0; iOp < ops.length; iOp++) {
-		var op = ops[iOp];
+	for (let iOp = 0; iOp < ops.length; iOp++) {
+		const op = ops[iOp];
 		if (!lookup[op.op]) {
 			lookup[op.op] = [];
 		}
@@ -392,21 +343,34 @@ function optimizeOps(ops) {
 	return lookup;
 }
 
-/**
- * @typedef {({value: number | string, pos: number}|QMToken[])} QMToken
- */
+export default QwickMaffs;
 
-/** @typedef {(QMToken|TokenList)[] & {pos: number}} TokenList */
+export interface QMOpts {
+	/**
+	 * The allowed decimal separator. This must always be a single character in length.
+	 */
+	decimalSep: RegExp | string;
+	/**
+	 * If true, e-notation (like 4.5e5) is supported.
+	 */
+	supportENotation: boolean;
+	/**
+	 * The errors that will be silently ignored.
+	 * Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+	 */
+	ignoreErrors: number;
+	/**
+	 * A list of operators supported.
+	 */
+	operators: QMOp[];
+}
 
-/** @typedef {{error: number, pos: number}} QMError */
-
-/**
- * @typedef {{ op: string, ass: 'right' | 'left' | 'prefix' | 'suffix', precedence: number, apply: ((num: number) => number) | ((x: number, y: number) => number)}} Op
- */
-
-var numberReg = /^\d+/;
-var eReg = /^e[+-]?\d+/i;
-var whitespaceReg = /\s/g;
-
-return QwickMaffs;
-})
+type QMToken = { value: number | string; pos: number };
+type TokenList = (QMToken | TokenList)[] & { pos: number };
+export type QMError = { error: number; pos: number };
+export type QMOp = {
+	op: string;
+	ass: 'right' | 'left' | 'prefix' | 'suffix';
+	precedence: number;
+	apply: ((num: number) => number) | ((x: number, y: number) => number);
+};
