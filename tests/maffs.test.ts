@@ -33,6 +33,39 @@ describe('Custom decimal separators', () => {
 	});
 });
 
+describe('Custom operators', () => {
+	test('"50%" -> 0.5', () => {
+		expect(
+			QwickMaffs.exec('50%', {
+				operators: [
+					...QwickMaffs.DefaultOptions.operators,
+					{
+						op: '%',
+						assoc: 'suffix',
+						precedence: 3,
+						apply: (x: number) => x / 100,
+					},
+				],
+			}),
+		).toBe(0.5);
+	});
+	test('"3 + 50%" -> 3.5', () => {
+		expect(
+			QwickMaffs.exec('3 + 50%', {
+				operators: [
+					...QwickMaffs.DefaultOptions.operators,
+					{
+						op: '%',
+						assoc: 'suffix',
+						precedence: 3,
+						apply: (x: number) => x / 100,
+					},
+				],
+			}),
+		).toBe(3.5);
+	});
+});
+
 describe('Order of operations', () => {
 	test.each([
 		['1 + 2 * 4 ^ 5', 2049],
