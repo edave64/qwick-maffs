@@ -2,92 +2,51 @@ import { describe, expect, test } from 'vitest';
 import QwickMaffs from '../src/index';
 
 describe('Basics', () => {
-	test('"1" -> 1', () => {
-		expect(QwickMaffs.exec('1')).toBe(1);
+	test.each([
+		['1', 1],
+		['42', 42],
+		['1.0', 1],
+		['1.1', 1.1],
+		['.1', 0.1],
+		['1.1e1', 11],
+		['3 + 3', 6],
+		['3 - 3', 0],
+		['3 * 3', 9],
+		['3 / 3', 1],
+		['3 ^ 3', 27],
+		['3²', 9],
+		['3³', 27],
+		['(2) + 1', 3],
+		['+ 4', 4],
+		['- 4', -4],
+	])('"%s" -> %i', (expression, result) => {
+		expect(QwickMaffs.exec(expression)).toBe(result);
 	});
-	test('"42" -> 42', () => {
-		expect(QwickMaffs.exec('42')).toBe(42);
-	});
-	test('"1.0" -> 1', () => {
-		expect(QwickMaffs.exec('1.0')).toBe(1);
-	});
-	test('"1.1" -> 1.1', () => {
-		expect(QwickMaffs.exec('1.1')).toBe(1.1);
-	});
+});
+
+describe('Custom decimal separators', () => {
 	test('"1c1" -> 1.1', () => {
 		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);
 	});
 	test('"1c1" -> 1.1', () => {
 		expect(QwickMaffs.exec('1c1', { decimalSep: /\w/ })).toBe(1.1);
 	});
-	test('".1" -> 0.1', () => {
-		expect(QwickMaffs.exec('.1')).toBe(0.1);
-	});
-	test('"1.1e1" -> 11', () => {
-		expect(QwickMaffs.exec('1.1e1')).toBe(11);
-	});
-	test('"3 + 3" -> 6', () => {
-		expect(QwickMaffs.exec('3 + 3')).toBe(6);
-	});
-	test('"3 - 3" -> 0', () => {
-		expect(QwickMaffs.exec('3 - 3')).toBe(0);
-	});
-	test('"3 * 3" -> 9', () => {
-		expect(QwickMaffs.exec('3 * 3')).toBe(9);
-	});
-	test('"3 / 3" -> 1', () => {
-		expect(QwickMaffs.exec('3 / 3')).toBe(1);
-	});
-	test('"3 ^ 3" -> 27', () => {
-		expect(QwickMaffs.exec('3 ^ 3')).toBe(27);
-	});
-	test('"3²" -> 9', () => {
-		expect(QwickMaffs.exec('3²')).toBe(9);
-	});
-	test('"3³" -> 27', () => {
-		expect(QwickMaffs.exec('3³')).toBe(27);
-	});
-	test('"(2) + 1" -> 3', () => {
-		expect(QwickMaffs.exec('(2) + 1')).toBe(3);
-	});
-	test('"+ 4"', () => {
-		expect(QwickMaffs.exec('+ 4')).toBe(4);
-	});
-	test('"- 4"', () => {
-		expect(QwickMaffs.exec('- 4')).toBe(-4);
-	});
 });
 
 describe('Order of operations', () => {
-	test('"1 + 2 * 4 ^ 5" -> 2049', () => {
-		expect(QwickMaffs.exec('1 + 2 * 4 ^ 5')).toBe(2049);
-	});
-	test('"5 ^ 4 * 2 + 1" -> 1251', () => {
-		expect(QwickMaffs.exec('5 ^ 4 * 2 + 1')).toBe(1251);
-	});
-	test('"(1 + 2) * 4 ^ 5" -> 3072', () => {
-		expect(QwickMaffs.exec('(1 + 2) * 4 ^ 5')).toBe(3072);
-	});
-	test('"1 + (2 * 4) ^ 5" -> 32769', () => {
-		expect(QwickMaffs.exec('1 + (2 * 4) ^ 5')).toBe(32769);
-	});
-	test('"(1 + 2 * 4) ^ 5" -> 59049', () => {
-		expect(QwickMaffs.exec('(1 + 2 * 4) ^ 5')).toBe(59049);
-	});
-	test('"((1 + 2) * 4) ^ 5" -> 248832', () => {
-		expect(QwickMaffs.exec('((1 + 2) * 4) ^ 5')).toBe(248832);
-	});
-	test('"--4 -> 4"', () => {
-		expect(QwickMaffs.exec('--4')).toBe(4);
-	});
-	test('"4²³ -> 256"', () => {
-		expect(QwickMaffs.exec('4²²')).toBe(256);
-	});
-	test('"--4²² -> 256"', () => {
-		expect(QwickMaffs.exec('--4²²')).toBe(256);
-	});
-	test('"8+-4 -> 4"', () => {
-		expect(QwickMaffs.exec('8+-4')).toBe(4);
+	test.each([
+		['1 + 2 * 4 ^ 5', 2049],
+		['5 ^ 4 * 2 + 1', 1251],
+		['(1 + 2) * 4 ^ 5', 3072],
+		['1 + (2 * 4) ^ 5', 32769],
+		['(1 + 2 * 4) ^ 5', 59049],
+		['((1 + 2) * 4) ^ 5', 248832],
+		['--4', 4],
+		['4²²', 256],
+		['--4²²', 256],
+		['8+-4', 4],
+	])('"%s" -> %i', (expression, result) => {
+		expect(QwickMaffs.exec(expression)).toBe(result);
 	});
 });
 
