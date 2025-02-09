@@ -15,55 +15,55 @@ const QwickMaffs = {
 		operators: [
 			{
 				op: '+',
-				ass: 'prefix',
+				assoc: 'prefix',
 				precedence: 1,
 				apply: (num: number) => num,
 			},
 			{
 				op: '-',
-				ass: 'prefix',
+				assoc: 'prefix',
 				precedence: 1,
 				apply: (num: number) => -num,
 			},
 			{
 				op: '^',
-				ass: 'left',
+				assoc: 'left',
 				precedence: 2,
 				apply: (x, y) => x ** y,
 			},
 			{
 				op: '²',
-				ass: 'suffix',
+				assoc: 'suffix',
 				precedence: 2,
 				apply: (num: number) => num ** 2,
 			},
 			{
 				op: '³',
-				ass: 'suffix',
+				assoc: 'suffix',
 				precedence: 2,
 				apply: (num: number) => num ** 3,
 			},
 			{
 				op: '*',
-				ass: 'left',
+				assoc: 'left',
 				precedence: 3,
 				apply: (x, y) => x * y,
 			},
 			{
 				op: '/',
-				ass: 'left',
+				assoc: 'left',
 				precedence: 3,
 				apply: (x, y) => x / y,
 			},
 			{
 				op: '+',
-				ass: 'left',
+				assoc: 'left',
 				precedence: 4,
 				apply: (x, y) => x + y,
 			},
 			{
 				op: '-',
-				ass: 'left',
+				assoc: 'left',
 				precedence: 4,
 				apply: (x, y) => x - y,
 			},
@@ -255,8 +255,8 @@ function execTokenList(
 			// Intelligently select prefix, suffix or infix
 			const ops = operators[token.value];
 			let op: QMOp | undefined = canPrefix
-				? ops.find((x) => x.ass === 'prefix')
-				: ops.find((x) => x.ass !== 'prefix');
+				? ops.find((x) => x.assoc === 'prefix')
+				: ops.find((x) => x.assoc !== 'prefix');
 			if (!op) {
 				// TODO: Pretty sure whenever this is invoked, there is a not enough
 				//       number error.
@@ -267,7 +267,7 @@ function execTokenList(
 					const previous = operatorStack[operatorStack.length - 1].val;
 					if (
 						previous.precedence < op.precedence ||
-						(previous.precedence === op.precedence && previous.ass === 'left')
+						(previous.precedence === op.precedence && previous.assoc === 'left')
 					) {
 						if ((error = execOp(previous, operatorStack.pop()!.pos)))
 							return error;
@@ -276,7 +276,7 @@ function execTokenList(
 					}
 				}
 				operatorStack.push({ val: op, pos: token.pos });
-				canPrefix = op.ass !== 'suffix';
+				canPrefix = op.assoc !== 'suffix';
 			} else {
 				// Error?
 			}
@@ -370,7 +370,7 @@ type TokenList = (QMToken | TokenList)[] & { pos: number };
 export type QMError = { error: number; pos: number };
 export type QMOp = {
 	op: string;
-	ass: 'right' | 'left' | 'prefix' | 'suffix';
+	assoc: 'right' | 'left' | 'prefix' | 'suffix';
 	precedence: number;
 	apply: ((num: number) => number) | ((x: number, y: number) => number);
 };
