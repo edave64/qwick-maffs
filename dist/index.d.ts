@@ -28,9 +28,13 @@ export interface QMOpts {
      */
     supportENotation: boolean;
     /**
-     * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+     * The errors that will be silently ignored.
+     * Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
      */
     ignoreErrors: number;
+    /**
+     * A list of operators supported.
+     */
     operators: QMOp[];
 }
 export type QMError = {
@@ -39,7 +43,7 @@ export type QMError = {
 };
 export type QMOp = {
     op: string;
-    ass: 'right' | 'left' | 'prefix' | 'suffix';
+    assoc: 'right' | 'left' | 'prefix' | 'suffix';
     precedence: number;
     apply: ((num: number) => number) | ((x: number, y: number) => number);
 };

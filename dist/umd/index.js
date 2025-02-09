@@ -29,70 +29,61 @@ var __assign = (this && this.__assign) || function () {
     var whitespaceReg = /\s/g;
     var QwickMaffs = {
         DefaultOptions: {
-            /**
-             * The allowed decimal separator. This must always be a single character in length.
-             */
             decimalSep: /[,.]/,
-            /**
-             * If true, e-notation (like 4.5e5) is supported.
-             */
             supportENotation: true,
-            /**
-             * The errors that will be silently ignored. Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
-             */
             ignoreErrors: 0,
             operators: [
                 {
                     op: '+',
-                    ass: 'prefix',
+                    assoc: 'prefix',
                     precedence: 1,
                     apply: function (num) { return num; },
                 },
                 {
                     op: '-',
-                    ass: 'prefix',
+                    assoc: 'prefix',
                     precedence: 1,
                     apply: function (num) { return -num; },
                 },
                 {
                     op: '^',
-                    ass: 'left',
+                    assoc: 'left',
                     precedence: 2,
                     apply: function (x, y) { return Math.pow(x, y); },
                 },
                 {
                     op: '²',
-                    ass: 'suffix',
+                    assoc: 'suffix',
                     precedence: 2,
                     apply: function (num) { return Math.pow(num, 2); },
                 },
                 {
                     op: '³',
-                    ass: 'suffix',
+                    assoc: 'suffix',
                     precedence: 2,
                     apply: function (num) { return Math.pow(num, 3); },
                 },
                 {
                     op: '*',
-                    ass: 'left',
+                    assoc: 'left',
                     precedence: 3,
                     apply: function (x, y) { return x * y; },
                 },
                 {
                     op: '/',
-                    ass: 'left',
+                    assoc: 'left',
                     precedence: 3,
                     apply: function (x, y) { return x / y; },
                 },
                 {
                     op: '+',
-                    ass: 'left',
+                    assoc: 'left',
                     precedence: 4,
                     apply: function (x, y) { return x + y; },
                 },
                 {
                     op: '-',
-                    ass: 'left',
+                    assoc: 'left',
                     precedence: 4,
                     apply: function (x, y) { return x - y; },
                 },
@@ -266,8 +257,8 @@ var __assign = (this && this.__assign) || function () {
                 // Intelligently select prefix, suffix or infix
                 var ops = operators[token.value];
                 var op = canPrefix
-                    ? ops.find(function (x) { return x.ass === 'prefix'; })
-                    : ops.find(function (x) { return x.ass !== 'prefix'; });
+                    ? ops.find(function (x) { return x.assoc === 'prefix'; })
+                    : ops.find(function (x) { return x.assoc !== 'prefix'; });
                 if (!op) {
                     // TODO: Pretty sure whenever this is invoked, there is a not enough
                     //       number error.
@@ -277,7 +268,7 @@ var __assign = (this && this.__assign) || function () {
                     while (operatorStack.length > 0) {
                         var previous = operatorStack[operatorStack.length - 1].val;
                         if (previous.precedence < op.precedence ||
-                            (previous.precedence === op.precedence && previous.ass === 'left')) {
+                            (previous.precedence === op.precedence && previous.assoc === 'left')) {
                             if ((error = execOp(previous, operatorStack.pop().pos)))
                                 return error;
                         }
@@ -286,7 +277,7 @@ var __assign = (this && this.__assign) || function () {
                         }
                     }
                     operatorStack.push({ val: op, pos: token.pos });
-                    canPrefix = op.ass !== 'suffix';
+                    canPrefix = op.assoc !== 'suffix';
                 }
                 else {
                     // Error?
