@@ -39,7 +39,7 @@
 							break;
 					}
 
-					text += ` at position ${result.pos + 1}: ${strValue.slice(0, result.pos)}<u>${strValue[result.pos] ?? ''}</u>${strValue.slice(result.pos + 1)}`;
+					text += ` at position ${result.pos + 1}: ${strValue.slice(0, result.pos)}<u>${strValue.slice(result.pos, result.pos + result.len)}</u>${strValue.slice(result.pos + result.len)}`;
 
 					errors.innerHTML = text;
 				}

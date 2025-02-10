@@ -125,6 +125,7 @@ var __assign = (this && this.__assign) || function () {
         // stack
         var currentList = [];
         currentList.pos = 0;
+        currentList.len = str.length;
         var stack = [];
         var ops = Object.keys(operators);
         var i = 0;
@@ -132,7 +133,7 @@ var __assign = (this && this.__assign) || function () {
             if (whitespaceReg.test(str[i]))
                 continue;
             if (ops.indexOf(str[i]) !== -1) {
-                currentList.push({ value: str[i], pos: i });
+                currentList.push({ value: str[i], pos: i, len: 1 });
                 continue;
             }
             switch (str[i]) {
@@ -148,17 +149,22 @@ var __assign = (this && this.__assign) || function () {
                     if (stack.length === 0) {
                         if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
                             // Move all already parsed elements into a sub-expression.
+                            var oldLen = currentList.len;
+                            currentList.len = i;
                             currentList = [currentList];
                             currentList.pos = currentList[0].pos;
+                            currentList.len = oldLen;
                         }
                         else {
                             return {
                                 error: QwickMaffs.Error.UnbalancedParenthesis,
                                 pos: i,
+                                len: 1
                             };
                         }
                     }
                     else {
+                        currentList.len = i - currentList.pos;
                         currentList = stack.pop();
                     }
                     break;
@@ -187,6 +193,7 @@ var __assign = (this && this.__assign) || function () {
                             return {
                                 error: QwickMaffs.Error.UnexpectedSymbol,
                                 pos: i,
+                                len: 1
                             };
                         }
                         num += match[0];
@@ -200,6 +207,7 @@ var __assign = (this && this.__assign) || function () {
                         return {
                             error: QwickMaffs.Error.UnexpectedSymbol,
                             pos: i,
+                            len: 1
                         };
                     }
                     if (opts.supportENotation) {
@@ -212,6 +220,7 @@ var __assign = (this && this.__assign) || function () {
                     currentList.push({
                         value: Number.parseFloat(num),
                         pos: i - num.length,
+                        len: num.length
                     });
                     i--;
                     break;
@@ -225,6 +234,7 @@ var __assign = (this && this.__assign) || function () {
             return {
                 error: QwickMaffs.Error.UnbalancedParenthesis,
                 pos: i,
+                len: 1
             };
         }
         return currentList;
@@ -239,6 +249,7 @@ var __assign = (this && this.__assign) || function () {
         // As random as it seems to track this, it saves us from saving all the
         // positions
         var secondPos = -1;
+        var secondLen = 0;
         var operatorStack = [];
         var canPrefix = true;
         var error = null;
@@ -250,7 +261,7 @@ var __assign = (this && this.__assign) || function () {
                 if (typeof ret === 'object') {
                     return ret;
                 }
-                pushOnStack(ret, token.pos);
+                pushOnStack(ret, token.pos, token.len);
                 canPrefix = false;
             }
             else if (typeof token.value === 'string') {
@@ -269,14 +280,16 @@ var __assign = (this && this.__assign) || function () {
                         var previous = operatorStack[operatorStack.length - 1].val;
                         if (previous.precedence < op.precedence ||
                             (previous.precedence === op.precedence && previous.assoc === 'left')) {
-                            if ((error = execOp(previous, operatorStack.pop().pos)))
+                            var prevOp = operatorStack.pop();
+                            if ((error = execOp(prevOp.val, prevOp.pos, prevOp.len))) {
                                 return error;
+                            }
                         }
                         else {
                             break;
                         }
                     }
-                    operatorStack.push({ val: op, pos: token.pos });
+                    operatorStack.push({ val: op, pos: token.pos, len: token.len });
                     canPrefix = op.assoc !== 'suffix';
                 }
                 else {
@@ -284,13 +297,13 @@ var __assign = (this && this.__assign) || function () {
                 }
             }
             else if (typeof token.value === 'number') {
-                pushOnStack(token.value, token.pos);
+                pushOnStack(token.value, token.pos, token.len);
                 canPrefix = false;
             }
         }
         for (var i = operatorStack.length - 1; i >= 0; --i) {
             var op = operatorStack[i];
-            if ((error = execOp(op.val, op.pos)))
+            if ((error = execOp(op.val, op.pos, op.len)))
                 return error;
         }
         if (numberStack.length > 1) {
@@ -300,32 +313,36 @@ var __assign = (this && this.__assign) || function () {
             return {
                 error: QwickMaffs.Error.MultipleNumbers,
                 pos: secondPos,
+                len: secondLen,
             };
         }
         if (numberStack.length === 0) {
             return {
                 error: QwickMaffs.Error.NoNumbers,
                 pos: tokens.pos || 0,
+                len: tokens.len
             };
         }
         return numberStack[0];
-        function pushOnStack(x, pos) {
+        function pushOnStack(x, pos, len) {
             numberStack.push(x);
             if (numberStack.length === 2) {
                 secondPos = pos;
+                secondLen = len;
             }
         }
-        function execOp(op, pos) {
+        function execOp(op, pos, len) {
             var func = op.apply;
             var needed = func.length;
             if (numberStack.length < needed) {
                 return {
                     error: QwickMaffs.Error.IncorrectNumberOfParameters,
                     pos: pos,
+                    len: len
                 };
             }
             var data = numberStack.splice(numberStack.length - needed, needed);
-            pushOnStack(func.apply(null, data), pos);
+            pushOnStack(func.apply(null, data), pos, len);
         }
     }
     function optimizeOps(ops) {
