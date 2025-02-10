@@ -36,10 +36,16 @@ export interface QMOpts {
      * A list of operators supported.
      */
     operators: QMOp[];
+    /**
+     * An object containing all the constants available. All keys must be
+     * lowercase, casing in the input is forced to lower
+     */
+    constants: Record<string, number>;
 }
 export type QMError = {
     error: number;
     pos: number;
+    len: number;
 };
 export type QMOp = {
     op: string;
