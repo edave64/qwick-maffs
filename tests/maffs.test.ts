@@ -24,6 +24,25 @@ describe('Basics', () => {
 	});
 });
 
+describe('Constants', () => {
+	test('"2*pi"', () => {
+		expect(QwickMaffs.exec('2*pi')).toBe(2 * Math.PI);
+	});
+	test('"2 * pI"', () => {
+		expect(QwickMaffs.exec('2 * pI')).toBe(2 * Math.PI);
+	});
+	test('Prefixing', () => {
+		expect(
+			QwickMaffs.exec('pinuts * pi', {
+				constants: {
+					...QwickMaffs.DefaultOptions.constants,
+					pinuts: 3,
+				},
+			}),
+		).toBe(3 * Math.PI);
+	});
+});
+
 describe('Custom decimal separators', () => {
 	test('"1c1" -> 1.1', () => {
 		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);
@@ -88,7 +107,7 @@ describe('Errors', () => {
 		expect(QwickMaffs.exec('1 + (4')).toStrictEqual({
 			error: QwickMaffs.Error.UnbalancedParenthesis,
 			pos: 6,
-			len: 1
+			len: 1,
 		});
 	});
 
@@ -193,6 +212,14 @@ describe('Errors', () => {
 			error: QwickMaffs.Error.MultipleNumbers,
 			pos: 2,
 			len: 3,
+		});
+	});
+
+	test('"pi pi"', () => {
+		expect(QwickMaffs.exec('pi pi')).toStrictEqual({
+			error: QwickMaffs.Error.MultipleNumbers,
+			pos: 3,
+			len: 2,
 		});
 	});
 

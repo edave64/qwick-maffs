@@ -68,6 +68,9 @@ const QwickMaffs = {
 				apply: (x, y) => x - y,
 			},
 		],
+		constants: {
+			pi: Math.PI,
+		},
 	} as QMOpts,
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -117,6 +120,9 @@ function tokenize(
 
 	const stack: TokenList[] = [];
 	const ops = Object.keys(operators);
+	const constants = Object.keys(opts.constants);
+	constants.sort((a, b) => b.length - a.length);
+	const constantsRegex = new RegExp(constants.join('|'), 'i');
 	let i = 0;
 
 	for (; i < str.length; ++i) {
@@ -147,7 +153,7 @@ function tokenize(
 						return {
 							error: QwickMaffs.Error.UnbalancedParenthesis,
 							pos: i,
-							len: 1
+							len: 1,
 						};
 					}
 				} else {
@@ -156,62 +162,40 @@ function tokenize(
 				}
 				break;
 			default: {
-				// No operator, no parens -> Must be number
-				let match = str.substring(i).match(numberReg);
-				let num = '';
-				if (match && match.index === 0) {
-					i += match[0].length;
-					num = match[0];
-				} else {
-					match = null;
-				}
-				if (
-					opts.decimalSep instanceof RegExp
-						? opts.decimalSep.test(str[i])
-						: opts.decimalSep === str[i]
-				) {
-					num += '.';
-					i += 1;
-					match = str.substring(i).match(numberReg);
-					// The decimal sep wasn't followed by a number. This isn't a number.
-					if (!match || match.index !== 0) {
-						if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-							continue;
-						}
-						return {
-							error: QwickMaffs.Error.UnexpectedSymbol,
-							pos: i,
-							len: 1
-						};
-					}
-					num += match[0];
-					i += match[0].length;
-				} else if (!match) {
-					// We neither found a decimal sep, nor a number. This isn't a number.
-					if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-						continue;
-					}
-					return {
-						error: QwickMaffs.Error.UnexpectedSymbol,
+				const subStr = str.substring(i);
+				const numberMatch = parseNumber(subStr, opts);
+				if (typeof numberMatch === 'string') {
+					currentList.push({
+						value: Number(numberMatch),
 						pos: i,
-						len: 1
-					};
+						len: numberMatch.length,
+					});
+					i += numberMatch.length - 1;
+					continue;
 				}
-				if (opts.supportENotation) {
-					const eMatch = str.substring(i).match(eReg);
-					if (eMatch && match.index === 0) {
-						num += eMatch[0];
-						i += eMatch[0].length;
-					}
+				if (typeof numberMatch === 'object') {
+					numberMatch.pos += i;
+					return numberMatch;
 				}
-				currentList.push({
-					value: Number.parseFloat(num),
-					pos: i - num.length,
-					len: num.length
-				});
-				i--;
-
-				break;
+				const opMatch = subStr.match(constantsRegex);
+				if (opMatch) {
+					currentList.push({
+						value: opts.constants[opMatch[0].toLowerCase()],
+						pos: i,
+						len: opMatch[0].length,
+					});
+					i += opMatch[0].length - 1;
+					continue;
+				}
+				// We neither found a decimal sep, nor a number. This isn't a number.
+				if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+					continue;
+				}
+				return {
+					error: QwickMaffs.Error.UnexpectedSymbol,
+					pos: i,
+					len: 1,
+				};
 			}
 		}
 	}
@@ -222,10 +206,57 @@ function tokenize(
 		return {
 			error: QwickMaffs.Error.UnbalancedParenthesis,
 			pos: i,
-			len: 1
+			len: 1,
 		};
 	}
 	return currentList;
+}
+
+function parseNumber(
+	subStr: string,
+	opts: typeof QwickMaffs.DefaultOptions,
+): string | QMError | undefined {
+	let i = 0;
+	let match = subStr.match(numberReg);
+	let num = '';
+	if (match && match.index === 0) {
+		i += match[0].length;
+		num = match[0];
+	} else {
+		match = null;
+	}
+	if (
+		opts.decimalSep instanceof RegExp
+			? opts.decimalSep.test(subStr[i])
+			: opts.decimalSep === subStr[i]
+	) {
+		num += '.';
+		i += 1;
+		match = subStr.substring(i).match(numberReg);
+		// The decimal sep wasn't followed by a number. This isn't a number.
+		if (!match || match.index !== 0) {
+			if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+				return;
+			}
+			return {
+				error: QwickMaffs.Error.UnexpectedSymbol,
+				pos: i,
+				len: 1,
+			};
+		}
+		num += match[0];
+		i += match[0].length;
+	} else if (!match) {
+		return;
+	}
+	if (opts.supportENotation) {
+		const eMatch = subStr.substring(i).match(eReg);
+		if (eMatch && eMatch.index === 0) {
+			num += eMatch[0];
+			i += eMatch[0].length;
+		}
+	}
+	return num;
 }
 
 /**
@@ -318,7 +349,7 @@ function execTokenList(
 		return {
 			error: QwickMaffs.Error.NoNumbers,
 			pos: tokens.pos || 0,
-			len: tokens.len
+			len: tokens.len,
 		};
 	}
 	return numberStack[0];
@@ -338,7 +369,7 @@ function execTokenList(
 			return {
 				error: QwickMaffs.Error.IncorrectNumberOfParameters,
 				pos,
-				len
+				len,
 			};
 		}
 		const data = numberStack.splice(numberStack.length - needed, needed);
@@ -384,11 +415,11 @@ export interface QMOpts {
 	 * An object containing all the constants available. All keys must be
 	 * lowercase, casing in the input is forced to lower
 	 */
-	constants: Record<string, number>
+	constants: Record<string, number>;
 }
 
 type QMToken = { value: number | string; pos: number; len: number };
-type TokenList = (QMToken | TokenList)[] & { pos: number, len: number };
+type TokenList = (QMToken | TokenList)[] & { pos: number; len: number };
 
 export type QMError = { error: number; pos: number; len: number };
 export type QMOp = {
