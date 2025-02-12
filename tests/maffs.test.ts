@@ -43,6 +43,12 @@ describe('Constants', () => {
 	});
 });
 
+describe('Functions', () => {
+	test('"cos(pi)"', () => {
+		expect(QwickMaffs.exec('cos(pi)')).toBe(-1);
+	});
+});
+
 describe('Custom decimal separators', () => {
 	test('"1c1" -> 1.1', () => {
 		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);

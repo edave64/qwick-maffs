@@ -71,6 +71,10 @@ const QwickMaffs = {
 		constants: {
 			pi: Math.PI,
 		},
+		functions: {
+			sin: Math.sin,
+			cos: Math.cos,
+		},
 	} as QMOpts,
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -120,9 +124,15 @@ function tokenize(
 
 	const stack: TokenList[] = [];
 	const ops = Object.keys(operators);
+
 	const constants = Object.keys(opts.constants);
 	constants.sort((a, b) => b.length - a.length);
-	const constantsRegex = new RegExp(constants.join('|'), 'i');
+	const constantsRegex = new RegExp(`^(${constants.join('|')})`, 'i');
+
+	const functions = Object.keys(opts.functions);
+	functions.sort((a, b) => b.length - a.length);
+	const functionsRegex = new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
+
 	let i = 0;
 
 	for (; i < str.length; ++i) {
@@ -177,15 +187,25 @@ function tokenize(
 					numberMatch.pos += i;
 					return numberMatch;
 				}
-				const opMatch = subStr.match(constantsRegex);
-				if (opMatch) {
+				const constMatch = subStr.match(constantsRegex);
+				if (constMatch) {
 					currentList.push({
-						value: opts.constants[opMatch[0].toLowerCase()],
+						value: opts.constants[constMatch[0].toLowerCase()],
 						pos: i,
-						len: opMatch[0].length,
+						len: constMatch[0].length,
 					});
-					i += opMatch[0].length - 1;
+					i += constMatch[0].length - 1;
 					continue;
+				}
+				const funcMatch = subStr.match(functionsRegex);
+				if (funcMatch) {
+					const newList = [] as unknown as FunctionCall;
+					newList.func = opts.functions[funcMatch[1].toLowerCase()];
+					currentList.push(newList);
+					stack.push(currentList);
+					currentList = newList;
+					i += funcMatch[0].length - 1;
+					break;
 				}
 				// We neither found a decimal sep, nor a number. This isn't a number.
 				if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
@@ -263,7 +283,7 @@ function parseNumber(
  * Takes a string containing either a number or a simple numeric expression
  */
 function execTokenList(
-	tokens: TokenList,
+	tokens: TokenList | FunctionCall,
 	operators: Record<string, QMOp[]>,
 	opts: typeof QwickMaffs.DefaultOptions,
 ): number | QMError {
@@ -333,6 +353,10 @@ function execTokenList(
 	for (let i = operatorStack.length - 1; i >= 0; --i) {
 		const op = operatorStack[i];
 		if ((error = execOp(op.val, op.pos, op.len))) return error;
+	}
+
+	if ('func' in tokens) {
+		return tokens.func(...numberStack);
 	}
 
 	if (numberStack.length > 1) {
@@ -416,10 +440,18 @@ export interface QMOpts {
 	 * lowercase, casing in the input is forced to lower
 	 */
 	constants: Record<string, number>;
+	/**
+	 *
+	 */
+	functions: Record<string, (...nums: number[]) => number>;
 }
 
 type QMToken = { value: number | string; pos: number; len: number };
-type TokenList = (QMToken | TokenList)[] & { pos: number; len: number };
+type TokenList = (QMToken | TokenList | FunctionCall)[] & {
+	pos: number;
+	len: number;
+};
+type FunctionCall = TokenList & { func: (...nums: number[]) => number };
 
 export type QMError = { error: number; pos: number; len: number };
 export type QMOp = {
