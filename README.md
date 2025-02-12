@@ -25,7 +25,7 @@ QwickMaffs.exec('4 + 4') #=> returns 8
 
 You can also provide a set of options with to the exec call:
 
-```
+```ts
 QwickMaffs.exec('4 + 4', {
 	decimalSep: /[,.]/,     // Either a string or a regex that indicates what symbol is accepted as a decimal separator.
 
@@ -47,7 +47,13 @@ QwickMaffs.exec('4 + 4', {
 			precedence: 3,
 			apply: (x) => x / 100,
 		},
-	]
+	],
+
+	// Constant values available. 
+	constants: {
+		...QwickMaffs.DefaultOptions.constants,
+		'e': Math.E,
+	}
 })
 ```
 
@@ -56,7 +62,7 @@ QwickMaffs.exec('4 + 4', {
 The `exec` function can return an error object if the expression cannot be parsed or executed. These error objects look
 like this:
 
-```
+```ts
 {
 	type: 0 // An enum value. Can be one of the following from the `QwickMaffs.Error` enum:
 	        // UnbalancedParenthesis: There are too few or too many parentesis. If there are too few, pos will be at
