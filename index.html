@@ -136,6 +136,12 @@ const result = QuickMaffs.exec('4 + 5 * 6', {
 			apply: (x) => x / 100,
 		},
 	]
+
+	<span class="comment">// Constant values available. Here, we add a constant "e".</span>
+	constants: {
+		...QwickMaffs.DefaultOptions.constants,
+		'e': Math.E,
+	}
 });
 			</code></pre>
 		</p>
