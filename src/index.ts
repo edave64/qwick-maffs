@@ -250,20 +250,13 @@ function parseNumber(
 			? opts.decimalSep.test(subStr[i])
 			: opts.decimalSep === subStr[i]
 	) {
-		num += '.';
 		i += 1;
 		match = subStr.substring(i).match(numberReg);
-		// The decimal sep wasn't followed by a number. This isn't a number.
+		// There is a decimal sep, but no number after it, so stop the number here.
 		if (!match || match.index !== 0) {
-			if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-				return;
-			}
-			return {
-				error: QwickMaffs.Error.UnexpectedSymbol,
-				pos: i,
-				len: 1,
-			};
+			return num.length > 0 ? num : undefined;
 		}
+		num += '.';
 		num += match[0];
 		i += match[0].length;
 	} else if (!match) {
