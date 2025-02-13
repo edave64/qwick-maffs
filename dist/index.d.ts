@@ -41,6 +41,10 @@ export interface QMOpts {
      * lowercase, casing in the input is forced to lower
      */
     constants: Record<string, number>;
+    /**
+     *
+     */
+    functions: Record<string, (...nums: number[]) => number>;
 }
 export type QMError = {
     error: number;

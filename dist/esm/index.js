@@ -66,6 +66,13 @@ const QwickMaffs = {
                 apply: (x, y) => x - y,
             },
         ],
+        constants: {
+            pi: Math.PI,
+        },
+        functions: {
+            sin: Math.sin,
+            cos: Math.cos,
+        },
     },
     Error: {
         UnbalancedParenthesis: 1,
@@ -106,6 +113,12 @@ function tokenize(str, operators, opts) {
     currentList.len = str.length;
     const stack = [];
     const ops = Object.keys(operators);
+    const constants = Object.keys(opts.constants);
+    constants.sort((a, b) => b.length - a.length);
+    const constantsRegex = new RegExp(`^(${constants.join('|')})`, 'i');
+    const functions = Object.keys(opts.functions);
+    functions.sort((a, b) => b.length - a.length);
+    const functionsRegex = new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
     let i = 0;
     for (; i < str.length; ++i) {
         if (whitespaceReg.test(str[i]))
@@ -137,7 +150,7 @@ function tokenize(str, operators, opts) {
                         return {
                             error: QwickMaffs.Error.UnbalancedParenthesis,
                             pos: i,
-                            len: 1
+                            len: 1,
                         };
                     }
                 }
@@ -147,61 +160,56 @@ function tokenize(str, operators, opts) {
                 }
                 break;
             default: {
-                // No operator, no parens -> Must be number
-                let match = str.substring(i).match(numberReg);
-                let num = '';
-                if (match && match.index === 0) {
-                    i += match[0].length;
-                    num = match[0];
-                }
-                else {
-                    match = null;
-                }
-                if (opts.decimalSep instanceof RegExp
-                    ? opts.decimalSep.test(str[i])
-                    : opts.decimalSep === str[i]) {
-                    num += '.';
-                    i += 1;
-                    match = str.substring(i).match(numberReg);
-                    // The decimal sep wasn't followed by a number. This isn't a number.
-                    if (!match || match.index !== 0) {
-                        if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-                            continue;
-                        }
-                        return {
-                            error: QwickMaffs.Error.UnexpectedSymbol,
-                            pos: i,
-                            len: 1
-                        };
-                    }
-                    num += match[0];
-                    i += match[0].length;
-                }
-                else if (!match) {
-                    // We neither found a decimal sep, nor a number. This isn't a number.
-                    if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-                        continue;
-                    }
-                    return {
-                        error: QwickMaffs.Error.UnexpectedSymbol,
+                const subStr = str.substring(i);
+                const numberMatch = parseNumber(subStr, opts);
+                if (typeof numberMatch === 'string') {
+                    currentList.push({
+                        value: Number(numberMatch),
                         pos: i,
-                        len: 1
-                    };
+                        len: numberMatch.length,
+                    });
+                    i += numberMatch.length - 1;
+                    continue;
                 }
-                if (opts.supportENotation) {
-                    const eMatch = str.substring(i).match(eReg);
-                    if (eMatch && match.index === 0) {
-                        num += eMatch[0];
-                        i += eMatch[0].length;
-                    }
+                if (typeof numberMatch === 'object') {
+                    numberMatch.pos += i;
+                    return numberMatch;
                 }
-                currentList.push({
-                    value: Number.parseFloat(num),
-                    pos: i - num.length,
-                    len: num.length
-                });
-                i--;
-                break;
+                // This has to be checked after numbers, because we allow "," as a decimal separator.
+                // So we ensure this isn't a decimal with the leading 0 dropped first
+                if (str[i] === ',') {
+                    currentList.push({ value: ',', pos: i, len: 1 });
+                    continue;
+                }
+                const constMatch = subStr.match(constantsRegex);
+                if (constMatch) {
+                    currentList.push({
+                        value: opts.constants[constMatch[0].toLowerCase()],
+                        pos: i,
+                        len: constMatch[0].length,
+                    });
+                    i += constMatch[0].length - 1;
+                    continue;
+                }
+                const funcMatch = subStr.match(functionsRegex);
+                if (funcMatch) {
+                    const newList = [];
+                    newList.func = opts.functions[funcMatch[1].toLowerCase()];
+                    currentList.push(newList);
+                    stack.push(currentList);
+                    currentList = newList;
+                    i += funcMatch[0].length - 1;
+                    break;
+                }
+                // We neither found a decimal sep, nor a number. This isn't a number.
+                if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+                    continue;
+                }
+                return {
+                    error: QwickMaffs.Error.UnexpectedSymbol,
+                    pos: i,
+                    len: 1,
+                };
             }
         }
     }
@@ -212,10 +220,46 @@ function tokenize(str, operators, opts) {
         return {
             error: QwickMaffs.Error.UnbalancedParenthesis,
             pos: i,
-            len: 1
+            len: 1,
         };
     }
     return currentList;
+}
+function parseNumber(subStr, opts) {
+    let i = 0;
+    let match = subStr.match(numberReg);
+    let num = '';
+    if (match && match.index === 0) {
+        i += match[0].length;
+        num = match[0];
+    }
+    else {
+        match = null;
+    }
+    if (opts.decimalSep instanceof RegExp
+        ? opts.decimalSep.test(subStr[i])
+        : opts.decimalSep === subStr[i]) {
+        i += 1;
+        match = subStr.substring(i).match(numberReg);
+        // There is a decimal sep, but no number after it, so stop the number here.
+        if (!match || match.index !== 0) {
+            return num.length > 0 ? num : undefined;
+        }
+        num += '.';
+        num += match[0];
+        i += match[0].length;
+    }
+    else if (!match) {
+        return;
+    }
+    if (opts.supportENotation) {
+        const eMatch = subStr.substring(i).match(eReg);
+        if (eMatch && eMatch.index === 0) {
+            num += eMatch[0];
+            i += eMatch[0].length;
+        }
+    }
+    return num;
 }
 /**
  * Takes a string containing either a number or a simple numeric expression
@@ -243,6 +287,11 @@ function execTokenList(tokens, operators, opts) {
             canPrefix = false;
         }
         else if (typeof token.value === 'string') {
+            if (token.value === ',') {
+                // The , token does nothing except suppress infix operators to properly separate function args
+                canPrefix = true;
+                continue;
+            }
             // Intelligently select prefix, suffix or infix
             const ops = operators[token.value];
             let op = canPrefix
@@ -284,6 +333,9 @@ function execTokenList(tokens, operators, opts) {
         if ((error = execOp(op.val, op.pos, op.len)))
             return error;
     }
+    if ('func' in tokens) {
+        return tokens.func(...numberStack);
+    }
     if (numberStack.length > 1) {
         if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
             return numberStack.reduce((a, b) => a * b);
@@ -298,7 +350,7 @@ function execTokenList(tokens, operators, opts) {
         return {
             error: QwickMaffs.Error.NoNumbers,
             pos: tokens.pos || 0,
-            len: tokens.len
+            len: tokens.len,
         };
     }
     return numberStack[0];
@@ -316,7 +368,7 @@ function execTokenList(tokens, operators, opts) {
             return {
                 error: QwickMaffs.Error.IncorrectNumberOfParameters,
                 pos,
-                len
+                len,
             };
         }
         const data = numberStack.splice(numberStack.length - needed, needed);
