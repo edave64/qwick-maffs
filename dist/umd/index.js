@@ -88,6 +88,13 @@ var __assign = (this && this.__assign) || function () {
                     apply: function (x, y) { return x - y; },
                 },
             ],
+            constants: {
+                pi: Math.PI,
+            },
+            functions: {
+                sin: Math.sin,
+                cos: Math.cos,
+            },
         },
         Error: {
             UnbalancedParenthesis: 1,
@@ -128,6 +135,12 @@ var __assign = (this && this.__assign) || function () {
         currentList.len = str.length;
         var stack = [];
         var ops = Object.keys(operators);
+        var constants = Object.keys(opts.constants);
+        constants.sort(function (a, b) { return b.length - a.length; });
+        var constantsRegex = new RegExp("^(".concat(constants.join('|'), ")"), 'i');
+        var functions = Object.keys(opts.functions);
+        functions.sort(function (a, b) { return b.length - a.length; });
+        var functionsRegex = new RegExp("^(".concat(functions.join('|'), ")\\s*\\("), 'i');
         var i = 0;
         for (; i < str.length; ++i) {
             if (whitespaceReg.test(str[i]))
@@ -159,7 +172,7 @@ var __assign = (this && this.__assign) || function () {
                             return {
                                 error: QwickMaffs.Error.UnbalancedParenthesis,
                                 pos: i,
-                                len: 1
+                                len: 1,
                             };
                         }
                     }
@@ -169,61 +182,56 @@ var __assign = (this && this.__assign) || function () {
                     }
                     break;
                 default: {
-                    // No operator, no parens -> Must be number
-                    var match = str.substring(i).match(numberReg);
-                    var num = '';
-                    if (match && match.index === 0) {
-                        i += match[0].length;
-                        num = match[0];
-                    }
-                    else {
-                        match = null;
-                    }
-                    if (opts.decimalSep instanceof RegExp
-                        ? opts.decimalSep.test(str[i])
-                        : opts.decimalSep === str[i]) {
-                        num += '.';
-                        i += 1;
-                        match = str.substring(i).match(numberReg);
-                        // The decimal sep wasn't followed by a number. This isn't a number.
-                        if (!match || match.index !== 0) {
-                            if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-                                continue;
-                            }
-                            return {
-                                error: QwickMaffs.Error.UnexpectedSymbol,
-                                pos: i,
-                                len: 1
-                            };
-                        }
-                        num += match[0];
-                        i += match[0].length;
-                    }
-                    else if (!match) {
-                        // We neither found a decimal sep, nor a number. This isn't a number.
-                        if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
-                            continue;
-                        }
-                        return {
-                            error: QwickMaffs.Error.UnexpectedSymbol,
+                    var subStr = str.substring(i);
+                    var numberMatch = parseNumber(subStr, opts);
+                    if (typeof numberMatch === 'string') {
+                        currentList.push({
+                            value: Number(numberMatch),
                             pos: i,
-                            len: 1
-                        };
+                            len: numberMatch.length,
+                        });
+                        i += numberMatch.length - 1;
+                        continue;
                     }
-                    if (opts.supportENotation) {
-                        var eMatch = str.substring(i).match(eReg);
-                        if (eMatch && match.index === 0) {
-                            num += eMatch[0];
-                            i += eMatch[0].length;
-                        }
+                    if (typeof numberMatch === 'object') {
+                        numberMatch.pos += i;
+                        return numberMatch;
                     }
-                    currentList.push({
-                        value: Number.parseFloat(num),
-                        pos: i - num.length,
-                        len: num.length
-                    });
-                    i--;
-                    break;
+                    // This has to be checked after numbers, because we allow "," as a decimal separator.
+                    // So we ensure this isn't a decimal with the leading 0 dropped first
+                    if (str[i] === ',') {
+                        currentList.push({ value: ',', pos: i, len: 1 });
+                        continue;
+                    }
+                    var constMatch = subStr.match(constantsRegex);
+                    if (constMatch) {
+                        currentList.push({
+                            value: opts.constants[constMatch[0].toLowerCase()],
+                            pos: i,
+                            len: constMatch[0].length,
+                        });
+                        i += constMatch[0].length - 1;
+                        continue;
+                    }
+                    var funcMatch = subStr.match(functionsRegex);
+                    if (funcMatch) {
+                        var newList = [];
+                        newList.func = opts.functions[funcMatch[1].toLowerCase()];
+                        currentList.push(newList);
+                        stack.push(currentList);
+                        currentList = newList;
+                        i += funcMatch[0].length - 1;
+                        break;
+                    }
+                    // We neither found a decimal sep, nor a number. This isn't a number.
+                    if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+                        continue;
+                    }
+                    return {
+                        error: QwickMaffs.Error.UnexpectedSymbol,
+                        pos: i,
+                        len: 1,
+                    };
                 }
             }
         }
@@ -234,10 +242,46 @@ var __assign = (this && this.__assign) || function () {
             return {
                 error: QwickMaffs.Error.UnbalancedParenthesis,
                 pos: i,
-                len: 1
+                len: 1,
             };
         }
         return currentList;
+    }
+    function parseNumber(subStr, opts) {
+        var i = 0;
+        var match = subStr.match(numberReg);
+        var num = '';
+        if (match && match.index === 0) {
+            i += match[0].length;
+            num = match[0];
+        }
+        else {
+            match = null;
+        }
+        if (opts.decimalSep instanceof RegExp
+            ? opts.decimalSep.test(subStr[i])
+            : opts.decimalSep === subStr[i]) {
+            i += 1;
+            match = subStr.substring(i).match(numberReg);
+            // There is a decimal sep, but no number after it, so stop the number here.
+            if (!match || match.index !== 0) {
+                return num.length > 0 ? num : undefined;
+            }
+            num += '.';
+            num += match[0];
+            i += match[0].length;
+        }
+        else if (!match) {
+            return;
+        }
+        if (opts.supportENotation) {
+            var eMatch = subStr.substring(i).match(eReg);
+            if (eMatch && eMatch.index === 0) {
+                num += eMatch[0];
+                i += eMatch[0].length;
+            }
+        }
+        return num;
     }
     /**
      * Takes a string containing either a number or a simple numeric expression
@@ -265,6 +309,11 @@ var __assign = (this && this.__assign) || function () {
                 canPrefix = false;
             }
             else if (typeof token.value === 'string') {
+                if (token.value === ',') {
+                    // The , token does nothing except suppress infix operators to properly separate function args
+                    canPrefix = true;
+                    continue;
+                }
                 // Intelligently select prefix, suffix or infix
                 var ops = operators[token.value];
                 var op = canPrefix
@@ -306,6 +355,9 @@ var __assign = (this && this.__assign) || function () {
             if ((error = execOp(op.val, op.pos, op.len)))
                 return error;
         }
+        if ('func' in tokens) {
+            return tokens.func.apply(tokens, numberStack);
+        }
         if (numberStack.length > 1) {
             if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
                 return numberStack.reduce(function (a, b) { return a * b; });
@@ -320,7 +372,7 @@ var __assign = (this && this.__assign) || function () {
             return {
                 error: QwickMaffs.Error.NoNumbers,
                 pos: tokens.pos || 0,
-                len: tokens.len
+                len: tokens.len,
             };
         }
         return numberStack[0];
@@ -338,7 +390,7 @@ var __assign = (this && this.__assign) || function () {
                 return {
                     error: QwickMaffs.Error.IncorrectNumberOfParameters,
                     pos: pos,
-                    len: len
+                    len: len,
                 };
             }
             var data = numberStack.splice(numberStack.length - needed, needed);

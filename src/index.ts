@@ -187,6 +187,14 @@ function tokenize(
 					numberMatch.pos += i;
 					return numberMatch;
 				}
+
+				// This has to be checked after numbers, because we allow "," as a decimal separator.
+				// So we ensure this isn't a decimal with the leading 0 dropped first
+				if (str[i] === ',') {
+					currentList.push({ value: ',', pos: i, len: 1 });
+					continue;
+				}
+
 				const constMatch = subStr.match(constantsRegex);
 				if (constMatch) {
 					currentList.push({
@@ -307,6 +315,12 @@ function execTokenList(
 			pushOnStack(ret, token.pos, token.len);
 			canPrefix = false;
 		} else if (typeof token.value === 'string') {
+			if (token.value === ',') {
+				// The , token does nothing except suppress infix operators to properly separate function args
+				canPrefix = true;
+				continue;
+			}
+
 			// Intelligently select prefix, suffix or infix
 			const ops = operators[token.value];
 			let op: QMOp | undefined = canPrefix
