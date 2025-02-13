@@ -49,6 +49,18 @@ describe('Functions', () => {
 	});
 });
 
+describe('Comma supressing infix', () => {
+	test('max(4, -4)', () => {
+		expect(
+			QwickMaffs.exec('max(4, -4)', {
+				functions: {
+					max: Math.max,
+				},
+			}),
+		).toBe(4);
+	});
+});
+
 describe('Custom decimal separators', () => {
 	test('"1c1" -> 1.1', () => {
 		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);
@@ -136,7 +148,7 @@ describe('Errors', () => {
 	test('"45.+"', () => {
 		expect(QwickMaffs.exec('45.+')).toStrictEqual({
 			error: QwickMaffs.Error.UnexpectedSymbol,
-			pos: 3,
+			pos: 2,
 			len: 1,
 		});
 	});
@@ -152,7 +164,7 @@ describe('Errors', () => {
 	test('"4 + . 8"', () => {
 		expect(QwickMaffs.exec('4 + . 8')).toStrictEqual({
 			error: QwickMaffs.Error.UnexpectedSymbol,
-			pos: 5,
+			pos: 4,
 			len: 1,
 		});
 	});
