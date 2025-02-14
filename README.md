@@ -53,6 +53,15 @@ QwickMaffs.exec('4 + 4', {
 	constants: {
 		...QwickMaffs.DefaultOptions.constants,
 		'e': Math.E,
+	},
+	
+	// Functions available. Functions are called by their name followed by
+	// parenthesis with the parameters.
+	// Here, we add `min` and `max` function.
+	functions: {
+		...QwickMaffs.DefaultOptions.functions,
+		min: Math.min,
+		max: Math.max,
 	}
 })
 ```

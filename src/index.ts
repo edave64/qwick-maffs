@@ -444,11 +444,14 @@ export interface QMOpts {
 	operators: QMOp[];
 	/**
 	 * An object containing all the constants available. All keys must be
-	 * lowercase, casing in the input is forced to lower
+	 * lowercase, casing in the input is forced to lowercase.
 	 */
 	constants: Record<string, number>;
 	/**
-	 *
+	 * An object containing all functions available. All keys must be
+	 * lowercase, casing in the input is forced to lowercase.
+	 * Functions are called by their name followed by parenthesis with the
+	 * parameters.
 	 */
 	functions: Record<string, (...nums: number[]) => number>;
 }

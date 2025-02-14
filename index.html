@@ -98,6 +98,8 @@
 			<li>+, -, *, /, ^</li>
 			<li>Operator precedence</li>
 			<li>Parenthesis</li>
+			<li>Constants (Pi)</li>
+			<li>Functions (sin, cos)</li>
 		</ul>
 		<p>Try it yourself (Press enter or leave the input to evaluate):</p>
 		<p>
@@ -135,12 +137,21 @@ const result = QuickMaffs.exec('4 + 5 * 6', {
 			precedence: 3,
 			apply: (x) => x / 100,
 		},
-	]
+	],
 
 	<span class="comment">// Constant values available. Here, we add a constant "e".</span>
 	constants: {
 		...QwickMaffs.DefaultOptions.constants,
-		'e': Math.E,
+		e: Math.E,
+	},
+	
+	<span class="comment">// Functions available. Functions are called by their name followed by
+	// parenthesis with the parameters.
+	// Here, we add `min` and `max` function.</span>
+	functions: {
+		...QwickMaffs.DefaultOptions.functions,
+		min: Math.min,
+		max: Math.max,
 	}
 });
 			</code></pre>
