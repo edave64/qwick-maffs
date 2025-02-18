@@ -95,6 +95,7 @@ var __assign = (this && this.__assign) || function () {
                 sin: Math.sin,
                 cos: Math.cos,
             },
+            units: [],
         },
         Error: {
             UnbalancedParenthesis: 1,
@@ -107,6 +108,7 @@ var __assign = (this && this.__assign) || function () {
          * Takes a string containing either a number or a simple numeric expression
          */
         exec: exec,
+        convert: convert,
     };
     function exec(str, opts) {
         var normalizedOpts = normalizeOpts(opts);
@@ -407,6 +409,22 @@ var __assign = (this && this.__assign) || function () {
             lookup[op.op].push(op);
         }
         return lookup;
+    }
+    function convert(value, unit) {
+        if (typeof value === 'number') {
+            if (unit === null)
+                return value;
+            return {
+                value: value,
+                unit: unit,
+            };
+        }
+        if (unit === null)
+            return value.value;
+        return {
+            value: value.value * unit.from[value.unit.name],
+            unit: unit,
+        };
     }
     exports.default = QwickMaffs;
 });
