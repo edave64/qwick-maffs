@@ -75,6 +75,7 @@ const QwickMaffs = {
 			sin: Math.sin,
 			cos: Math.cos,
 		},
+		units: [],
 	} as QMOpts,
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -86,7 +87,8 @@ const QwickMaffs = {
 	/**
 	 * Takes a string containing either a number or a simple numeric expression
 	 */
-	exec: exec,
+	exec,
+	convert,
 };
 
 function exec(str: string, opts?: Partial<QMOpts>): number | QMError {
@@ -422,6 +424,30 @@ function optimizeOps(ops: QMOp[]): Record<string, QMOp[]> {
 	return lookup;
 }
 
+function convert(value: number | QMValue, unit: null, units: QMUnit[]): number;
+function convert(
+	value: number | QMValue,
+	unit: QMUnit,
+	units: QMUnit[],
+): QMValue;
+function convert(
+	value: number | QMValue,
+	unit: QMUnit | null,
+): number | QMValue {
+	if (typeof value === 'number') {
+		if (unit === null) return value;
+		return {
+			value,
+			unit,
+		};
+	}
+	if (unit === null) return value.value;
+	return {
+		value: value.value * unit.from[value.unit.name],
+		unit: unit,
+	};
+}
+
 export default QwickMaffs;
 
 export interface QMOpts {
@@ -454,6 +480,10 @@ export interface QMOpts {
 	 * parameters.
 	 */
 	functions: Record<string, (...nums: number[]) => number>;
+	/**
+	 *
+	 */
+	units: QMUnit[];
 }
 
 type QMToken = { value: number | string; pos: number; len: number };
@@ -462,7 +492,7 @@ type TokenList = (QMToken | TokenList | FunctionCall)[] & {
 	len: number;
 };
 type FunctionCall = TokenList & { func: (...nums: number[]) => number };
-
+export type QMValue = { value: number; unit: QMUnit };
 export type QMError = { error: number; pos: number; len: number };
 export type QMOp = {
 	op: string;
@@ -470,3 +500,15 @@ export type QMOp = {
 	precedence: number;
 	apply: ((num: number) => number) | ((x: number, y: number) => number);
 };
+
+type QMUnit = {
+	name: string;
+	from: Record<string, number>;
+} & (
+	| {
+			si: true;
+	  }
+	| {
+			alias: Record<string, number>;
+	  }
+);

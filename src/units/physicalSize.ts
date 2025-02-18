@@ -1,11 +1,13 @@
-export default {
-	m: {
+export default [
+	{
+		name: 'm',
 		si: true,
 		from: {
 			ft: 0.3048,
 		},
 	},
-	ft: {
+	{
+		name: 'ft',
 		from: {
 			m: 1 / 0.3048,
 		},
@@ -15,4 +17,4 @@ export default {
 			in: 1 / 12,
 		},
 	},
-};
+];
