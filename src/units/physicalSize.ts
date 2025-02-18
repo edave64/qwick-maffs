@@ -1,4 +1,4 @@
-export default [
+const allUnits = [
 	{
 		name: 'm',
 		si: true,
@@ -18,3 +18,8 @@ export default [
 		},
 	},
 ];
+
+export default allUnits;
+export const lookup = Object.fromEntries(
+	allUnits.map((unit) => [unit.name, unit]),
+);
