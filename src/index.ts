@@ -75,6 +75,7 @@ const QwickMaffs = {
 			sin: Math.sin,
 			cos: Math.cos,
 		},
+		units: [],
 	} as QMOpts,
 	Error: {
 		UnbalancedParenthesis: 1,
@@ -82,14 +83,31 @@ const QwickMaffs = {
 		IncorrectNumberOfParameters: 4,
 		MultipleNumbers: 8,
 		NoNumbers: 16,
+		IncompatibleUnits: 32,
 	} as const,
 	/**
 	 * Takes a string containing either a number or a simple numeric expression
 	 */
-	exec: exec,
+	exec,
+	convert,
+	siPrefixes: [
+		['T', 1_000_000_000_000],
+		['G', 1_000_000_000],
+		['M', 1_000_000],
+		['k', 1_000],
+		['h', 100],
+		['da', 10],
+		['d', 1 / 10],
+		['c', 1 / 100],
+		['m', 1 / 1_000],
+		['u', 1 / 1_000_000],
+		['µ', 1 / 1_000_000],
+		['n', 1 / 1_000_000_000],
+		['p', 1 / 1_000_000_000_000],
+	] as [string, number][],
 };
 
-function exec(str: string, opts?: Partial<QMOpts>): number | QMError {
+function exec(str: string, opts?: Partial<QMOpts>): number | QMValue | QMError {
 	const normalizedOpts = normalizeOpts(opts);
 	const ops = optimizeOps(normalizedOpts.operators);
 	const tokens = tokenize(str, ops, normalizedOpts);
@@ -127,11 +145,49 @@ function tokenize(
 
 	const constants = Object.keys(opts.constants);
 	constants.sort((a, b) => b.length - a.length);
-	const constantsRegex = new RegExp(`^(${constants.join('|')})`, 'i');
+	const constantsRegex =
+		constants.length === 0
+			? null
+			: new RegExp(`^(${constants.join('|')})`, 'i');
 
 	const functions = Object.keys(opts.functions);
 	functions.sort((a, b) => b.length - a.length);
-	const functionsRegex = new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
+	const functionsRegex =
+		functions.length === 0
+			? null
+			: new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
+
+	const normalizedUnits: Record<string, { unit: QMUnit; multiplier: number }> =
+		{};
+	for (const unit of opts.units) {
+		normalizedUnits[unit.name] = {
+			unit,
+			multiplier: 1,
+		};
+		if ('si' in unit && unit.si) {
+			for (const prefix of QwickMaffs.siPrefixes) {
+				normalizedUnits[prefix[0] + unit.name] = {
+					unit,
+					multiplier: prefix[1],
+				};
+			}
+		} else if ('alias' in unit) {
+			for (const subUnit in unit.alias) {
+				normalizedUnits[subUnit] = {
+					unit,
+					multiplier: unit.alias[subUnit],
+				};
+			}
+		}
+	}
+	const unitsRegex =
+		opts.units.length === 0
+			? null
+			: new RegExp(
+					`^(${Object.keys(normalizedUnits)
+						.sort((a, b) => b.length - a.length)
+						.join('|')})`,
+				);
 
 	let i = 0;
 
@@ -175,12 +231,24 @@ function tokenize(
 				const subStr = str.substring(i);
 				const numberMatch = parseNumber(subStr, opts);
 				if (typeof numberMatch === 'string') {
+					let len = numberMatch.length;
+					let value: number | QMValue = Number(numberMatch);
+					const unitMatch =
+						unitsRegex && subStr.substring(len).match(unitsRegex);
+					if (unitMatch) {
+						len += unitMatch[0].length;
+						const normUnit = normalizedUnits[unitMatch[0]];
+						value = {
+							unit: normUnit.unit,
+							value: value * normUnit.multiplier,
+						};
+					}
 					currentList.push({
-						value: Number(numberMatch),
+						value,
 						pos: i,
-						len: numberMatch.length,
+						len,
 					});
-					i += numberMatch.length - 1;
+					i += len - 1;
 					continue;
 				}
 				if (typeof numberMatch === 'object') {
@@ -195,7 +263,7 @@ function tokenize(
 					continue;
 				}
 
-				const constMatch = subStr.match(constantsRegex);
+				const constMatch = constantsRegex && subStr.match(constantsRegex);
 				if (constMatch) {
 					currentList.push({
 						value: opts.constants[constMatch[0].toLowerCase()],
@@ -205,7 +273,7 @@ function tokenize(
 					i += constMatch[0].length - 1;
 					continue;
 				}
-				const funcMatch = subStr.match(functionsRegex);
+				const funcMatch = functionsRegex && subStr.match(functionsRegex);
 				if (funcMatch) {
 					const newList = [] as unknown as FunctionCall;
 					newList.func = opts.functions[funcMatch[1].toLowerCase()];
@@ -280,6 +348,8 @@ function parseNumber(
 	return num;
 }
 
+const IncompatibleUnitError = new Error('Incompatible units');
+
 /**
  * Takes a string containing either a number or a simple numeric expression
  */
@@ -287,8 +357,8 @@ function execTokenList(
 	tokens: TokenList | FunctionCall,
 	operators: Record<string, QMOp[]>,
 	opts: typeof QwickMaffs.DefaultOptions,
-): number | QMError {
-	const numberStack: number[] = [];
+): number | QMValue | QMError {
+	const numberStack: Array<number | QMValue> = [];
 
 	// The token position of the second number on the stack (Index 1)
 	// This is the position of the multiple numbers error, should it be fired.
@@ -296,6 +366,9 @@ function execTokenList(
 	// positions
 	let secondPos = -1;
 	let secondLen = 0;
+	const ignoreUnitErrors = !!(
+		opts.ignoreErrors & QwickMaffs.Error.IncompatibleUnits
+	);
 
 	const operatorStack: { val: QMOp; pos: number; len: number }[] = [];
 	let canPrefix = true;
@@ -339,7 +412,14 @@ function execTokenList(
 						(previous.precedence === op.precedence && previous.assoc === 'left')
 					) {
 						const prevOp = operatorStack.pop()!;
-						if ((error = execOp(prevOp.val, prevOp.pos, prevOp.len))) {
+						if (
+							(error = execOp(
+								prevOp.val,
+								prevOp.pos,
+								prevOp.len,
+								ignoreUnitErrors,
+							))
+						) {
 							return error;
 						}
 					} else {
@@ -351,7 +431,7 @@ function execTokenList(
 			} else {
 				// Error?
 			}
-		} else if (typeof token.value === 'number') {
+		} else {
 			pushOnStack(token.value, token.pos, token.len);
 			canPrefix = false;
 		}
@@ -359,16 +439,56 @@ function execTokenList(
 
 	for (let i = operatorStack.length - 1; i >= 0; --i) {
 		const op = operatorStack[i];
-		if ((error = execOp(op.val, op.pos, op.len))) return error;
+		if ((error = execOp(op.val, op.pos, op.len, ignoreUnitErrors)))
+			return error;
 	}
 
 	if ('func' in tokens) {
-		return tokens.func(...numberStack);
+		let normalizedData: number[];
+		let targetUnit: QMUnit | null;
+		try {
+			const { values, unit } = normalizeValues(numberStack, ignoreUnitErrors);
+			normalizedData = values;
+			targetUnit = unit;
+		} catch (e) {
+			if (e === IncompatibleUnitError) {
+				return {
+					error: QwickMaffs.Error.IncompatibleUnits,
+					len: tokens.len,
+					pos: tokens.pos,
+				};
+			}
+			throw e;
+		}
+
+		return QwickMaffs.convert(
+			tokens.func(...normalizedData),
+			targetUnit as QMUnit,
+		);
 	}
 
 	if (numberStack.length > 1) {
 		if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
-			return numberStack.reduce((a, b) => a * b);
+			let normalizedData: number[];
+			let targetUnit: QMUnit | null;
+			try {
+				const { values, unit } = normalizeValues(numberStack, ignoreUnitErrors);
+				normalizedData = values;
+				targetUnit = unit;
+			} catch (e) {
+				if (e === IncompatibleUnitError) {
+					return {
+						error: QwickMaffs.Error.IncompatibleUnits,
+						pos: secondPos,
+						len: secondLen,
+					};
+				}
+				throw e;
+			}
+			return QwickMaffs.convert(
+				normalizedData.reduce((a, b) => a * b),
+				targetUnit as QMUnit,
+			);
 		}
 		return {
 			error: QwickMaffs.Error.MultipleNumbers,
@@ -385,7 +505,7 @@ function execTokenList(
 	}
 	return numberStack[0];
 
-	function pushOnStack(x: number, pos: number, len: number) {
+	function pushOnStack(x: number | QMValue, pos: number, len: number) {
 		numberStack.push(x);
 		if (numberStack.length === 2) {
 			secondPos = pos;
@@ -393,8 +513,13 @@ function execTokenList(
 		}
 	}
 
-	function execOp(op: QMOp, pos: number, len: number): QMError | undefined {
-		const func: (...num: number[]) => number = op.apply;
+	function execOp(
+		op: QMOp,
+		pos: number,
+		len: number,
+		ignoreUnitErrors: boolean,
+	): QMError | undefined {
+		const func: (...num: Array<number>) => number = op.apply;
 		const needed = func.length;
 		if (numberStack.length < needed) {
 			return {
@@ -404,8 +529,57 @@ function execTokenList(
 			};
 		}
 		const data = numberStack.splice(numberStack.length - needed, needed);
-		pushOnStack(func.apply(null as unknown, data), pos, len);
+		let normalizedData: number[];
+		let targetUnit: QMUnit | null;
+		try {
+			const { values, unit } = normalizeValues(data, ignoreUnitErrors);
+			normalizedData = values;
+			targetUnit = unit;
+		} catch (e) {
+			if (e === IncompatibleUnitError) {
+				return {
+					error: QwickMaffs.Error.IncompatibleUnits,
+					len,
+					pos,
+				};
+			}
+			throw e;
+		}
+
+		let ret: number | QMValue = func.apply(null as unknown, normalizedData);
+
+		if (targetUnit !== null) {
+			ret = {
+				value: ret,
+				unit: targetUnit,
+			};
+		}
+		pushOnStack(ret, pos, len);
 	}
+}
+
+function normalizeValues(
+	data: Array<number | QMValue>,
+	ignoreUnitErrors: boolean,
+): {
+	values: number[];
+	unit: QMUnit | null;
+} {
+	const targetUnit = data.find((x) => typeof x === 'object')?.unit ?? null;
+	const normalizedData = data.map((x) => {
+		if (typeof x === 'number') {
+			return x;
+		}
+		if (targetUnit == null || x.unit === targetUnit) {
+			return x.value;
+		}
+		if (targetUnit.from[x.unit.name]) {
+			return x.value * targetUnit.from[x.unit.name];
+		}
+		if (ignoreUnitErrors) return x.value;
+		throw IncompatibleUnitError;
+	});
+	return { values: normalizedData, unit: targetUnit };
 }
 
 function optimizeOps(ops: QMOp[]): Record<string, QMOp[]> {
@@ -420,6 +594,26 @@ function optimizeOps(ops: QMOp[]): Record<string, QMOp[]> {
 	}
 
 	return lookup;
+}
+
+function convert(value: number | QMValue, unit: null): number;
+function convert(value: number | QMValue, unit: QMUnit): QMValue;
+function convert(
+	value: number | QMValue,
+	unit: QMUnit | null,
+): number | QMValue {
+	if (typeof value === 'number') {
+		if (unit === null) return value;
+		return {
+			value,
+			unit,
+		};
+	}
+	if (unit === null) return value.value;
+	return {
+		value: value.value * unit.from[value.unit.name],
+		unit: unit,
+	};
 }
 
 export default QwickMaffs;
@@ -454,15 +648,19 @@ export interface QMOpts {
 	 * parameters.
 	 */
 	functions: Record<string, (...nums: number[]) => number>;
+	/**
+	 *
+	 */
+	units: QMUnit[];
 }
 
-type QMToken = { value: number | string; pos: number; len: number };
+type QMToken = { value: number | string | QMValue; pos: number; len: number };
 type TokenList = (QMToken | TokenList | FunctionCall)[] & {
 	pos: number;
 	len: number;
 };
 type FunctionCall = TokenList & { func: (...nums: number[]) => number };
-
+export type QMValue = { value: number; unit: QMUnit };
 export type QMError = { error: number; pos: number; len: number };
 export type QMOp = {
 	op: string;
@@ -470,3 +668,15 @@ export type QMOp = {
 	precedence: number;
 	apply: ((num: number) => number) | ((x: number, y: number) => number);
 };
+
+export type QMUnit = {
+	name: string;
+	from: Record<string, number>;
+} & (
+	| {
+			si: true;
+	  }
+	| {
+			alias: Record<string, number>;
+	  }
+);

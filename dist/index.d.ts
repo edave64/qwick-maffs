@@ -15,8 +15,11 @@ declare const QwickMaffs: {
      * Takes a string containing either a number or a simple numeric expression
      */
     exec: typeof exec;
+    convert: typeof convert;
 };
 declare function exec(str: string, opts?: Partial<QMOpts>): number | QMError;
+declare function convert(value: number | QMValue, unit: null, units: QMUnit[]): number;
+declare function convert(value: number | QMValue, unit: QMUnit, units: QMUnit[]): QMValue;
 export default QwickMaffs;
 export interface QMOpts {
     /**
@@ -48,7 +51,15 @@ export interface QMOpts {
      * parameters.
      */
     functions: Record<string, (...nums: number[]) => number>;
+    /**
+     *
+     */
+    units: QMUnit[];
 }
+export type QMValue = {
+    value: number;
+    unit: QMUnit;
+};
 export type QMError = {
     error: number;
     pos: number;
@@ -60,3 +71,11 @@ export type QMOp = {
     precedence: number;
     apply: ((num: number) => number) | ((x: number, y: number) => number);
 };
+type QMUnit = {
+    name: string;
+    from: Record<string, number>;
+} & ({
+    si: true;
+} | {
+    alias: Record<string, number>;
+});
