@@ -1,3 +1,5 @@
+import type { QMUnit } from '../index';
+
 const allUnits = [
 	{
 		name: 'm',
@@ -17,7 +19,7 @@ const allUnits = [
 			in: 1 / 12,
 		},
 	},
-];
+] as QMUnit[];
 
 export default allUnits;
 export const lookup = Object.fromEntries(

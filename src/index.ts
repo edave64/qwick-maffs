@@ -90,6 +90,21 @@ const QwickMaffs = {
 	 */
 	exec,
 	convert,
+	siPrefixes: [
+		['T', 1_000_000_000_000],
+		['G', 1_000_000_000],
+		['M', 1_000_000],
+		['k', 1_000],
+		['h', 100],
+		['da', 10],
+		['d', 1 / 10],
+		['c', 1 / 100],
+		['m', 1 / 1_000],
+		['u', 1 / 1_000_000],
+		['µ', 1 / 1_000_000],
+		['n', 1 / 1_000_000_000],
+		['p', 1 / 1_000_000_000_000],
+	] as [string, number][],
 };
 
 function exec(str: string, opts?: Partial<QMOpts>): number | QMValue | QMError {
@@ -130,11 +145,49 @@ function tokenize(
 
 	const constants = Object.keys(opts.constants);
 	constants.sort((a, b) => b.length - a.length);
-	const constantsRegex = new RegExp(`^(${constants.join('|')})`, 'i');
+	const constantsRegex =
+		constants.length === 0
+			? null
+			: new RegExp(`^(${constants.join('|')})`, 'i');
 
 	const functions = Object.keys(opts.functions);
 	functions.sort((a, b) => b.length - a.length);
-	const functionsRegex = new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
+	const functionsRegex =
+		functions.length === 0
+			? null
+			: new RegExp(`^(${functions.join('|')})\\s*\\(`, 'i');
+
+	const normalizedUnits: Record<string, { unit: QMUnit; multiplier: number }> =
+		{};
+	for (const unit of opts.units) {
+		normalizedUnits[unit.name] = {
+			unit,
+			multiplier: 1,
+		};
+		if ('si' in unit && unit.si) {
+			for (const prefix of QwickMaffs.siPrefixes) {
+				normalizedUnits[prefix[0] + unit.name] = {
+					unit,
+					multiplier: prefix[1],
+				};
+			}
+		} else if ('alias' in unit) {
+			for (const subUnit in unit.alias) {
+				normalizedUnits[subUnit] = {
+					unit,
+					multiplier: unit.alias[subUnit],
+				};
+			}
+		}
+	}
+	const unitsRegex =
+		opts.units.length === 0
+			? null
+			: new RegExp(
+					`^(${Object.keys(normalizedUnits)
+						.sort((a, b) => b.length - a.length)
+						.join('|')})`,
+				);
 
 	let i = 0;
 
@@ -178,12 +231,24 @@ function tokenize(
 				const subStr = str.substring(i);
 				const numberMatch = parseNumber(subStr, opts);
 				if (typeof numberMatch === 'string') {
+					let len = numberMatch.length;
+					let value: number | QMValue = Number(numberMatch);
+					const unitMatch =
+						unitsRegex && subStr.substring(len).match(unitsRegex);
+					if (unitMatch) {
+						len += unitMatch[0].length;
+						const normUnit = normalizedUnits[unitMatch[0]];
+						value = {
+							unit: normUnit.unit,
+							value: value * normUnit.multiplier,
+						};
+					}
 					currentList.push({
-						value: Number(numberMatch),
+						value,
 						pos: i,
-						len: numberMatch.length,
+						len,
 					});
-					i += numberMatch.length - 1;
+					i += len - 1;
 					continue;
 				}
 				if (typeof numberMatch === 'object') {
@@ -198,7 +263,7 @@ function tokenize(
 					continue;
 				}
 
-				const constMatch = subStr.match(constantsRegex);
+				const constMatch = constantsRegex && subStr.match(constantsRegex);
 				if (constMatch) {
 					currentList.push({
 						value: opts.constants[constMatch[0].toLowerCase()],
@@ -208,7 +273,7 @@ function tokenize(
 					i += constMatch[0].length - 1;
 					continue;
 				}
-				const funcMatch = subStr.match(functionsRegex);
+				const funcMatch = functionsRegex && subStr.match(functionsRegex);
 				if (funcMatch) {
 					const newList = [] as unknown as FunctionCall;
 					newList.func = opts.functions[funcMatch[1].toLowerCase()];
@@ -366,7 +431,7 @@ function execTokenList(
 			} else {
 				// Error?
 			}
-		} else if (typeof token.value === 'number') {
+		} else {
 			pushOnStack(token.value, token.pos, token.len);
 			canPrefix = false;
 		}
@@ -481,7 +546,15 @@ function execTokenList(
 			throw e;
 		}
 
-		pushOnStack(func.apply(null as unknown, normalizedData), pos, len);
+		let ret: number | QMValue = func.apply(null as unknown, normalizedData);
+
+		if (targetUnit !== null) {
+			ret = {
+				value: ret,
+				unit: targetUnit,
+			};
+		}
+		pushOnStack(ret, pos, len);
 	}
 }
 
@@ -497,7 +570,7 @@ function normalizeValues(
 		if (typeof x === 'number') {
 			return x;
 		}
-		if (targetUnit == null) {
+		if (targetUnit == null || x.unit === targetUnit) {
 			return x.value;
 		}
 		if (targetUnit.from[x.unit.name]) {
@@ -581,7 +654,7 @@ export interface QMOpts {
 	units: QMUnit[];
 }
 
-type QMToken = { value: number | string; pos: number; len: number };
+type QMToken = { value: number | string | QMValue; pos: number; len: number };
 type TokenList = (QMToken | TokenList | FunctionCall)[] & {
 	pos: number;
 	len: number;
@@ -596,7 +669,7 @@ export type QMOp = {
 	apply: ((num: number) => number) | ((x: number, y: number) => number);
 };
 
-type QMUnit = {
+export type QMUnit = {
 	name: string;
 	from: Record<string, number>;
 } & (
