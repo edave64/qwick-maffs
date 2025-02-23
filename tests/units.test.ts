@@ -14,6 +14,7 @@ describe('Units', () => {
 		['2dm + 6cm', { value: 0.26, unit: lookup.m }],
 		['2dm * 6m', { value: 0.2 * 6, unit: lookup.m }], // This is pretty wrong :/
 		['3m ^ 2', { value: 9, unit: lookup.m }], // But we don't support things like area
+		['1m + 1ft', { value: 1.3048, unit: lookup.m }],
 	])('"%s" -> %o', (expression, result) => {
 		expect(QwickMaffs.exec(expression, { units: PhysicalUnits })).toMatchObject(
 			result,
