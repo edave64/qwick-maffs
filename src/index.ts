@@ -82,6 +82,7 @@ export const Errors = {
 	IncorrectNumberOfParameters: 4,
 	MultipleNumbers: 8,
 	NoNumbers: 16,
+	All: 31,
 } as const;
 
 export function exec(str: string, opts?: Partial<QMOpts>): number | QMError {
