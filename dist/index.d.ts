@@ -2,22 +2,15 @@
  * QwickMaffs 0.3.0 by edave64
  * Released under the MIT license: https://github.com/edave64/qwick-maffs/blob/main/LICENCE
  */
-declare const QwickMaffs: {
-    DefaultOptions: QMOpts;
-    Error: {
-        readonly UnbalancedParenthesis: 1;
-        readonly UnexpectedSymbol: 2;
-        readonly IncorrectNumberOfParameters: 4;
-        readonly MultipleNumbers: 8;
-        readonly NoNumbers: 16;
-    };
-    /**
-     * Takes a string containing either a number or a simple numeric expression
-     */
-    exec: typeof exec;
+export declare const DefaultOptions: QMOpts;
+export declare const Errors: {
+    readonly UnbalancedParenthesis: 1;
+    readonly UnexpectedSymbol: 2;
+    readonly IncorrectNumberOfParameters: 4;
+    readonly MultipleNumbers: 8;
+    readonly NoNumbers: 16;
 };
-declare function exec(str: string, opts?: Partial<QMOpts>): number | QMError;
-export default QwickMaffs;
+export declare function exec(str: string, opts?: Partial<QMOpts>): number | QMError;
 export interface QMOpts {
     /**
      * The allowed decimal separator. This must always be a single character in length.
@@ -29,7 +22,7 @@ export interface QMOpts {
     supportENotation: boolean;
     /**
      * The errors that will be silently ignored.
-     * Set like this: `ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis | QwickMaffs.Error.NoNumbers`
+     * Set like this: `ignoreErrors: Errors.UnbalancedParenthesis | Errors.NoNumbers`
      */
     ignoreErrors: number;
     /**

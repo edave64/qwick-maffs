@@ -24,89 +24,85 @@ var __assign = (this && this.__assign) || function () {
 })(function (require, exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
+    exports.Errors = exports.DefaultOptions = void 0;
+    exports.exec = exec;
     var numberReg = /^\d+/;
     var eReg = /^e[+-]?\d+/i;
     var whitespaceReg = /\s/g;
-    var QwickMaffs = {
-        DefaultOptions: {
-            decimalSep: /[,.]/,
-            supportENotation: true,
-            ignoreErrors: 0,
-            operators: [
-                {
-                    op: '+',
-                    assoc: 'prefix',
-                    precedence: 1,
-                    apply: function (num) { return num; },
-                },
-                {
-                    op: '-',
-                    assoc: 'prefix',
-                    precedence: 1,
-                    apply: function (num) { return -num; },
-                },
-                {
-                    op: '^',
-                    assoc: 'left',
-                    precedence: 2,
-                    apply: function (x, y) { return Math.pow(x, y); },
-                },
-                {
-                    op: '²',
-                    assoc: 'suffix',
-                    precedence: 2,
-                    apply: function (num) { return Math.pow(num, 2); },
-                },
-                {
-                    op: '³',
-                    assoc: 'suffix',
-                    precedence: 2,
-                    apply: function (num) { return Math.pow(num, 3); },
-                },
-                {
-                    op: '*',
-                    assoc: 'left',
-                    precedence: 3,
-                    apply: function (x, y) { return x * y; },
-                },
-                {
-                    op: '/',
-                    assoc: 'left',
-                    precedence: 3,
-                    apply: function (x, y) { return x / y; },
-                },
-                {
-                    op: '+',
-                    assoc: 'left',
-                    precedence: 4,
-                    apply: function (x, y) { return x + y; },
-                },
-                {
-                    op: '-',
-                    assoc: 'left',
-                    precedence: 4,
-                    apply: function (x, y) { return x - y; },
-                },
-            ],
-            constants: {
-                pi: Math.PI,
+    exports.DefaultOptions = {
+        decimalSep: /[,.]/,
+        supportENotation: true,
+        ignoreErrors: 0,
+        operators: [
+            {
+                op: '+',
+                assoc: 'prefix',
+                precedence: 1,
+                apply: function (num) { return num; },
             },
-            functions: {
-                sin: Math.sin,
-                cos: Math.cos,
+            {
+                op: '-',
+                assoc: 'prefix',
+                precedence: 1,
+                apply: function (num) { return -num; },
             },
+            {
+                op: '^',
+                assoc: 'left',
+                precedence: 2,
+                apply: function (x, y) { return Math.pow(x, y); },
+            },
+            {
+                op: '²',
+                assoc: 'suffix',
+                precedence: 2,
+                apply: function (num) { return Math.pow(num, 2); },
+            },
+            {
+                op: '³',
+                assoc: 'suffix',
+                precedence: 2,
+                apply: function (num) { return Math.pow(num, 3); },
+            },
+            {
+                op: '*',
+                assoc: 'left',
+                precedence: 3,
+                apply: function (x, y) { return x * y; },
+            },
+            {
+                op: '/',
+                assoc: 'left',
+                precedence: 3,
+                apply: function (x, y) { return x / y; },
+            },
+            {
+                op: '+',
+                assoc: 'left',
+                precedence: 4,
+                apply: function (x, y) { return x + y; },
+            },
+            {
+                op: '-',
+                assoc: 'left',
+                precedence: 4,
+                apply: function (x, y) { return x - y; },
+            },
+        ],
+        constants: {
+            pi: Math.PI,
         },
-        Error: {
-            UnbalancedParenthesis: 1,
-            UnexpectedSymbol: 2,
-            IncorrectNumberOfParameters: 4,
-            MultipleNumbers: 8,
-            NoNumbers: 16,
+        functions: {
+            sin: Math.sin,
+            cos: Math.cos,
         },
-        /**
-         * Takes a string containing either a number or a simple numeric expression
-         */
-        exec: exec,
+    };
+    exports.Errors = {
+        UnbalancedParenthesis: 1,
+        UnexpectedSymbol: 2,
+        IncorrectNumberOfParameters: 4,
+        MultipleNumbers: 8,
+        NoNumbers: 16,
     };
     function exec(str, opts) {
         var normalizedOpts = normalizeOpts(opts);
@@ -119,8 +115,8 @@ var __assign = (this && this.__assign) || function () {
     }
     function normalizeOpts(opts) {
         if (!opts)
-            return QwickMaffs.DefaultOptions;
-        return __assign(__assign({}, QwickMaffs.DefaultOptions), opts);
+            return exports.DefaultOptions;
+        return __assign(__assign({}, exports.DefaultOptions), opts);
     }
     /**
      * Takes an input strings and returns a list of tokens, in the form of js numbers for numbers, strings for operators
@@ -160,7 +156,7 @@ var __assign = (this && this.__assign) || function () {
                 }
                 case ')':
                     if (stack.length === 0) {
-                        if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+                        if (opts.ignoreErrors & exports.Errors.UnbalancedParenthesis) {
                             // Move all already parsed elements into a sub-expression.
                             var oldLen = currentList.len;
                             currentList.len = i;
@@ -170,7 +166,7 @@ var __assign = (this && this.__assign) || function () {
                         }
                         else {
                             return {
-                                error: QwickMaffs.Error.UnbalancedParenthesis,
+                                error: exports.Errors.UnbalancedParenthesis,
                                 pos: i,
                                 len: 1,
                             };
@@ -224,11 +220,11 @@ var __assign = (this && this.__assign) || function () {
                         break;
                     }
                     // We neither found a decimal sep, nor a number. This isn't a number.
-                    if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+                    if (opts.ignoreErrors & exports.Errors.UnexpectedSymbol) {
                         continue;
                     }
                     return {
-                        error: QwickMaffs.Error.UnexpectedSymbol,
+                        error: exports.Errors.UnexpectedSymbol,
                         pos: i,
                         len: 1,
                     };
@@ -236,11 +232,11 @@ var __assign = (this && this.__assign) || function () {
             }
         }
         if (stack.length !== 0) {
-            if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+            if (opts.ignoreErrors & exports.Errors.UnbalancedParenthesis) {
                 return stack[0];
             }
             return {
-                error: QwickMaffs.Error.UnbalancedParenthesis,
+                error: exports.Errors.UnbalancedParenthesis,
                 pos: i,
                 len: 1,
             };
@@ -359,18 +355,18 @@ var __assign = (this && this.__assign) || function () {
             return tokens.func.apply(tokens, numberStack);
         }
         if (numberStack.length > 1) {
-            if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
+            if (opts.ignoreErrors & exports.Errors.MultipleNumbers) {
                 return numberStack.reduce(function (a, b) { return a * b; });
             }
             return {
-                error: QwickMaffs.Error.MultipleNumbers,
+                error: exports.Errors.MultipleNumbers,
                 pos: secondPos,
                 len: secondLen,
             };
         }
         if (numberStack.length === 0) {
             return {
-                error: QwickMaffs.Error.NoNumbers,
+                error: exports.Errors.NoNumbers,
                 pos: tokens.pos || 0,
                 len: tokens.len,
             };
@@ -388,7 +384,7 @@ var __assign = (this && this.__assign) || function () {
             var needed = func.length;
             if (numberStack.length < needed) {
                 return {
-                    error: QwickMaffs.Error.IncorrectNumberOfParameters,
+                    error: exports.Errors.IncorrectNumberOfParameters,
                     pos: pos,
                     len: len,
                 };
@@ -408,5 +404,4 @@ var __assign = (this && this.__assign) || function () {
         }
         return lookup;
     }
-    exports.default = QwickMaffs;
 });

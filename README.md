@@ -35,7 +35,7 @@ QwickMaffs.exec('4 + 4', {
 	// Makes it exec will not return these errors. The parser will instead try to take a best guess at what the user
 	// tried to accomplish.
 	// E.g. MultipleNumbers will multiply the numbers, and UnbalancedParenthesis will be balanced automatically
-	ignoreErrors: QwickMaffs.Error.MultipleNumbers | QwickMaffs.Error.UnbalancedParenthesis,
+	ignoreErrors: QwickMaffs.Errors.MultipleNumbers | QwickMaffs.Errors.UnbalancedParenthesis,
 	
 	// Sets the operators supported in the expression. Here, we take all default operators and add "%", which divides a
 	// number by 100
@@ -73,7 +73,7 @@ like this:
 
 ```ts
 {
-	type: 0 // An enum value. Can be one of the following from the `QwickMaffs.Error` enum:
+	type: 0 // An enum value. Can be one of the following from the `QwickMaffs.Errors` enum:
 	        // UnbalancedParenthesis: There are too few or too many parentesis. If there are too few, pos will be at
 	        //                        the end of the string.
 	        //

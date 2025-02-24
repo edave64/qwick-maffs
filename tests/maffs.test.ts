@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import QwickMaffs from '../src/index';
+import { exec, Errors, DefaultOptions } from '../src/index';
 
 describe('Basics', () => {
 	test.each([
@@ -20,22 +20,22 @@ describe('Basics', () => {
 		['+ 4', 4],
 		['- 4', -4],
 	])('"%s" -> %i', (expression, result) => {
-		expect(QwickMaffs.exec(expression)).toBe(result);
+		expect(exec(expression)).toBe(result);
 	});
 });
 
 describe('Constants', () => {
 	test('"2*pi"', () => {
-		expect(QwickMaffs.exec('2*pi')).toBe(2 * Math.PI);
+		expect(exec('2*pi')).toBe(2 * Math.PI);
 	});
 	test('"2 * pI"', () => {
-		expect(QwickMaffs.exec('2 * pI')).toBe(2 * Math.PI);
+		expect(exec('2 * pI')).toBe(2 * Math.PI);
 	});
 	test('Prefixing', () => {
 		expect(
-			QwickMaffs.exec('pinuts * pi', {
+			exec('pinuts * pi', {
 				constants: {
-					...QwickMaffs.DefaultOptions.constants,
+					...DefaultOptions.constants,
 					pinuts: 3,
 				},
 			}),
@@ -45,14 +45,14 @@ describe('Constants', () => {
 
 describe('Functions', () => {
 	test('"cos(pi)"', () => {
-		expect(QwickMaffs.exec('cos(pi)')).toBe(-1);
+		expect(exec('cos(pi)')).toBe(-1);
 	});
 });
 
 describe('Comma supressing infix', () => {
 	test('max(4, -4)', () => {
 		expect(
-			QwickMaffs.exec('max(4, -4)', {
+			exec('max(4, -4)', {
 				functions: {
 					max: Math.max,
 				},
@@ -63,19 +63,19 @@ describe('Comma supressing infix', () => {
 
 describe('Custom decimal separators', () => {
 	test('"1c1" -> 1.1', () => {
-		expect(QwickMaffs.exec('1c1', { decimalSep: 'c' })).toBe(1.1);
+		expect(exec('1c1', { decimalSep: 'c' })).toBe(1.1);
 	});
 	test('"1c1" -> 1.1', () => {
-		expect(QwickMaffs.exec('1c1', { decimalSep: /\w/ })).toBe(1.1);
+		expect(exec('1c1', { decimalSep: /\w/ })).toBe(1.1);
 	});
 });
 
 describe('Custom operators', () => {
 	test('"50%" -> 0.5', () => {
 		expect(
-			QwickMaffs.exec('50%', {
+			exec('50%', {
 				operators: [
-					...QwickMaffs.DefaultOptions.operators,
+					...DefaultOptions.operators,
 					{
 						op: '%',
 						assoc: 'suffix',
@@ -88,9 +88,9 @@ describe('Custom operators', () => {
 	});
 	test('"3 + 50%" -> 3.5', () => {
 		expect(
-			QwickMaffs.exec('3 + 50%', {
+			exec('3 + 50%', {
 				operators: [
-					...QwickMaffs.DefaultOptions.operators,
+					...DefaultOptions.operators,
 					{
 						op: '%',
 						assoc: 'suffix',
@@ -116,150 +116,150 @@ describe('Order of operations', () => {
 		['--4²²', 256],
 		['8+-4', 4],
 	])('"%s" -> %i', (expression, result) => {
-		expect(QwickMaffs.exec(expression)).toBe(result);
+		expect(exec(expression)).toBe(result);
 	});
 });
 
 describe('Errors', () => {
 	test('"1 + (4"', () => {
-		expect(QwickMaffs.exec('1 + (4')).toStrictEqual({
-			error: QwickMaffs.Error.UnbalancedParenthesis,
+		expect(exec('1 + (4')).toStrictEqual({
+			error: Errors.UnbalancedParenthesis,
 			pos: 6,
 			len: 1,
 		});
 	});
 
 	test('"1) + 4"', () => {
-		expect(QwickMaffs.exec('1) + 4')).toStrictEqual({
-			error: QwickMaffs.Error.UnbalancedParenthesis,
+		expect(exec('1) + 4')).toStrictEqual({
+			error: Errors.UnbalancedParenthesis,
 			pos: 1,
 			len: 1,
 		});
 	});
 
 	test('"wat?"', () => {
-		expect(QwickMaffs.exec('wat?')).toStrictEqual({
-			error: QwickMaffs.Error.UnexpectedSymbol,
+		expect(exec('wat?')).toStrictEqual({
+			error: Errors.UnexpectedSymbol,
 			pos: 0,
 			len: 1,
 		});
 	});
 
 	test('"45.+"', () => {
-		expect(QwickMaffs.exec('45.+')).toStrictEqual({
-			error: QwickMaffs.Error.UnexpectedSymbol,
+		expect(exec('45.+')).toStrictEqual({
+			error: Errors.UnexpectedSymbol,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"45e1"', () => {
-		expect(QwickMaffs.exec('45e1', { supportENotation: false })).toStrictEqual({
-			error: QwickMaffs.Error.UnexpectedSymbol,
+		expect(exec('45e1', { supportENotation: false })).toStrictEqual({
+			error: Errors.UnexpectedSymbol,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"4 + . 8"', () => {
-		expect(QwickMaffs.exec('4 + . 8')).toStrictEqual({
-			error: QwickMaffs.Error.UnexpectedSymbol,
+		expect(exec('4 + . 8')).toStrictEqual({
+			error: Errors.UnexpectedSymbol,
 			pos: 4,
 			len: 1,
 		});
 	});
 
 	test('"4 +"', () => {
-		expect(QwickMaffs.exec('4 +')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('4 +')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"4 +"', () => {
-		expect(QwickMaffs.exec('4 +')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('4 +')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"* 4"', () => {
-		expect(QwickMaffs.exec('* 4')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('* 4')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 0,
 			len: 1,
 		});
 	});
 
 	test('"* ²"', () => {
-		expect(QwickMaffs.exec('* ²')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('* ²')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"* +"', () => {
-		expect(QwickMaffs.exec('* +')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('* +')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"+"', () => {
-		expect(QwickMaffs.exec('+')).toStrictEqual({
-			error: QwickMaffs.Error.IncorrectNumberOfParameters,
+		expect(exec('+')).toStrictEqual({
+			error: Errors.IncorrectNumberOfParameters,
 			pos: 0,
 			len: 1,
 		});
 	});
 
 	test('"4 4"', () => {
-		expect(QwickMaffs.exec('4 4')).toStrictEqual({
-			error: QwickMaffs.Error.MultipleNumbers,
+		expect(exec('4 4')).toStrictEqual({
+			error: Errors.MultipleNumbers,
 			pos: 2,
 			len: 1,
 		});
 	});
 
 	test('"4 4.3"', () => {
-		expect(QwickMaffs.exec('4 4.3')).toStrictEqual({
-			error: QwickMaffs.Error.MultipleNumbers,
+		expect(exec('4 4.3')).toStrictEqual({
+			error: Errors.MultipleNumbers,
 			pos: 2,
 			len: 3,
 		});
 	});
 
 	test('"pi pi"', () => {
-		expect(QwickMaffs.exec('pi pi')).toStrictEqual({
-			error: QwickMaffs.Error.MultipleNumbers,
+		expect(exec('pi pi')).toStrictEqual({
+			error: Errors.MultipleNumbers,
 			pos: 3,
 			len: 2,
 		});
 	});
 
 	test('"(4 4)"', () => {
-		expect(QwickMaffs.exec('(4 4)')).toStrictEqual({
-			error: QwickMaffs.Error.MultipleNumbers,
+		expect(exec('(4 4)')).toStrictEqual({
+			error: Errors.MultipleNumbers,
 			pos: 3,
 			len: 1,
 		});
 	});
 
 	test('""', () => {
-		expect(QwickMaffs.exec('')).toStrictEqual({
-			error: QwickMaffs.Error.NoNumbers,
+		expect(exec('')).toStrictEqual({
+			error: Errors.NoNumbers,
 			pos: 0,
 			len: 0,
 		});
 	});
 
 	test('"4 + 4 ()"', () => {
-		expect(QwickMaffs.exec('4 + 4 ()')).toStrictEqual({
-			error: QwickMaffs.Error.NoNumbers,
+		expect(exec('4 + 4 ()')).toStrictEqual({
+			error: Errors.NoNumbers,
 			pos: 6,
 			len: 1,
 		});
@@ -269,29 +269,29 @@ describe('Errors', () => {
 describe('Skip UnbalancedParenthesis', () => {
 	test('"1 + (4"', () => {
 		expect(
-			QwickMaffs.exec('1 + (4', {
-				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			exec('1 + (4', {
+				ignoreErrors: Errors.UnbalancedParenthesis,
 			}),
 		).toBe(5);
 	});
 	test('"1 + (4 - (3"', () => {
 		expect(
-			QwickMaffs.exec('1 + (4 - (3', {
-				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			exec('1 + (4 - (3', {
+				ignoreErrors: Errors.UnbalancedParenthesis,
 			}),
 		).toBe(2);
 	});
 	test('"4 - 1) * 4"', () => {
 		expect(
-			QwickMaffs.exec('4 - 1) * 4', {
-				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			exec('4 - 1) * 4', {
+				ignoreErrors: Errors.UnbalancedParenthesis,
 			}),
 		).toBe(12);
 	});
 	test('"5 - 1)² * (3 + 2"', () => {
 		expect(
-			QwickMaffs.exec('5 - 1)² * (3 + 2', {
-				ignoreErrors: QwickMaffs.Error.UnbalancedParenthesis,
+			exec('5 - 1)² * (3 + 2', {
+				ignoreErrors: Errors.UnbalancedParenthesis,
 			}),
 		).toBe(80);
 	});
@@ -300,19 +300,19 @@ describe('Skip UnbalancedParenthesis', () => {
 describe('Skip UnexpectedSymbol', () => {
 	test('"4 + . 8"', () => {
 		expect(
-			QwickMaffs.exec('4 + . 8', {
-				ignoreErrors: QwickMaffs.Error.UnexpectedSymbol,
+			exec('4 + . 8', {
+				ignoreErrors: Errors.UnexpectedSymbol,
 			}),
 		).toBe(12);
 	});
 	test('"45e1"', () => {
 		expect(
-			QwickMaffs.exec('45e1', {
+			exec('45e1', {
 				supportENotation: false,
-				ignoreErrors: QwickMaffs.Error.UnexpectedSymbol,
+				ignoreErrors: Errors.UnexpectedSymbol,
 			}),
 		).toStrictEqual({
-			error: QwickMaffs.Error.MultipleNumbers,
+			error: Errors.MultipleNumbers,
 			len: 1,
 			pos: 3,
 		});
@@ -322,8 +322,8 @@ describe('Skip UnexpectedSymbol', () => {
 describe('Skip MultipleNumbers', () => {
 	test('"4(8)"', () => {
 		expect(
-			QwickMaffs.exec('4(8)', {
-				ignoreErrors: QwickMaffs.Error.MultipleNumbers,
+			exec('4(8)', {
+				ignoreErrors: Errors.MultipleNumbers,
 			}),
 		).toBe(32);
 	});

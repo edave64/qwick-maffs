@@ -5,88 +5,82 @@
 const numberReg = /^\d+/;
 const eReg = /^e[+-]?\d+/i;
 const whitespaceReg = /\s/g;
-const QwickMaffs = {
-    DefaultOptions: {
-        decimalSep: /[,.]/,
-        supportENotation: true,
-        ignoreErrors: 0,
-        operators: [
-            {
-                op: '+',
-                assoc: 'prefix',
-                precedence: 1,
-                apply: (num) => num,
-            },
-            {
-                op: '-',
-                assoc: 'prefix',
-                precedence: 1,
-                apply: (num) => -num,
-            },
-            {
-                op: '^',
-                assoc: 'left',
-                precedence: 2,
-                apply: (x, y) => Math.pow(x, y),
-            },
-            {
-                op: '²',
-                assoc: 'suffix',
-                precedence: 2,
-                apply: (num) => Math.pow(num, 2),
-            },
-            {
-                op: '³',
-                assoc: 'suffix',
-                precedence: 2,
-                apply: (num) => Math.pow(num, 3),
-            },
-            {
-                op: '*',
-                assoc: 'left',
-                precedence: 3,
-                apply: (x, y) => x * y,
-            },
-            {
-                op: '/',
-                assoc: 'left',
-                precedence: 3,
-                apply: (x, y) => x / y,
-            },
-            {
-                op: '+',
-                assoc: 'left',
-                precedence: 4,
-                apply: (x, y) => x + y,
-            },
-            {
-                op: '-',
-                assoc: 'left',
-                precedence: 4,
-                apply: (x, y) => x - y,
-            },
-        ],
-        constants: {
-            pi: Math.PI,
+export const DefaultOptions = {
+    decimalSep: /[,.]/,
+    supportENotation: true,
+    ignoreErrors: 0,
+    operators: [
+        {
+            op: '+',
+            assoc: 'prefix',
+            precedence: 1,
+            apply: (num) => num,
         },
-        functions: {
-            sin: Math.sin,
-            cos: Math.cos,
+        {
+            op: '-',
+            assoc: 'prefix',
+            precedence: 1,
+            apply: (num) => -num,
         },
+        {
+            op: '^',
+            assoc: 'left',
+            precedence: 2,
+            apply: (x, y) => Math.pow(x, y),
+        },
+        {
+            op: '²',
+            assoc: 'suffix',
+            precedence: 2,
+            apply: (num) => Math.pow(num, 2),
+        },
+        {
+            op: '³',
+            assoc: 'suffix',
+            precedence: 2,
+            apply: (num) => Math.pow(num, 3),
+        },
+        {
+            op: '*',
+            assoc: 'left',
+            precedence: 3,
+            apply: (x, y) => x * y,
+        },
+        {
+            op: '/',
+            assoc: 'left',
+            precedence: 3,
+            apply: (x, y) => x / y,
+        },
+        {
+            op: '+',
+            assoc: 'left',
+            precedence: 4,
+            apply: (x, y) => x + y,
+        },
+        {
+            op: '-',
+            assoc: 'left',
+            precedence: 4,
+            apply: (x, y) => x - y,
+        },
+    ],
+    constants: {
+        pi: Math.PI,
     },
-    Error: {
-        UnbalancedParenthesis: 1,
-        UnexpectedSymbol: 2,
-        IncorrectNumberOfParameters: 4,
-        MultipleNumbers: 8,
-        NoNumbers: 16,
+    functions: {
+        sin: Math.sin,
+        cos: Math.cos,
     },
-    /**
-     * Takes a string containing either a number or a simple numeric expression
-     */
-    exec: exec,
 };
-function exec(str, opts) {
+export const Errors = {
+    UnbalancedParenthesis: 1,
+    UnexpectedSymbol: 2,
+    IncorrectNumberOfParameters: 4,
+    MultipleNumbers: 8,
+    NoNumbers: 16,
+};
+export function exec(str, opts) {
     const normalizedOpts = normalizeOpts(opts);
     const ops = optimizeOps(normalizedOpts.operators);
     const tokens = tokenize(str, ops, normalizedOpts);
@@ -97,8 +91,8 @@ function exec(str, opts) {
 }
 function normalizeOpts(opts) {
     if (!opts)
-        return QwickMaffs.DefaultOptions;
-    return Object.assign(Object.assign({}, QwickMaffs.DefaultOptions), opts);
+        return DefaultOptions;
+    return Object.assign(Object.assign({}, DefaultOptions), opts);
 }
 /**
  * Takes an input strings and returns a list of tokens, in the form of js numbers for numbers, strings for operators
@@ -138,7 +132,7 @@ function tokenize(str, operators, opts) {
             }
             case ')':
                 if (stack.length === 0) {
-                    if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+                    if (opts.ignoreErrors & Errors.UnbalancedParenthesis) {
                         // Move all already parsed elements into a sub-expression.
                         const oldLen = currentList.len;
                         currentList.len = i;
@@ -148,7 +142,7 @@ function tokenize(str, operators, opts) {
                     }
                     else {
                         return {
-                            error: QwickMaffs.Error.UnbalancedParenthesis,
+                            error: Errors.UnbalancedParenthesis,
                             pos: i,
                             len: 1,
                         };
@@ -202,11 +196,11 @@ function tokenize(str, operators, opts) {
                     break;
                 }
                 // We neither found a decimal sep, nor a number. This isn't a number.
-                if (opts.ignoreErrors & QwickMaffs.Error.UnexpectedSymbol) {
+                if (opts.ignoreErrors & Errors.UnexpectedSymbol) {
                     continue;
                 }
                 return {
-                    error: QwickMaffs.Error.UnexpectedSymbol,
+                    error: Errors.UnexpectedSymbol,
                     pos: i,
                     len: 1,
                 };
@@ -214,11 +208,11 @@ function tokenize(str, operators, opts) {
         }
     }
     if (stack.length !== 0) {
-        if (opts.ignoreErrors & QwickMaffs.Error.UnbalancedParenthesis) {
+        if (opts.ignoreErrors & Errors.UnbalancedParenthesis) {
             return stack[0];
         }
         return {
-            error: QwickMaffs.Error.UnbalancedParenthesis,
+            error: Errors.UnbalancedParenthesis,
             pos: i,
             len: 1,
         };
@@ -337,18 +331,18 @@ function execTokenList(tokens, operators, opts) {
         return tokens.func(...numberStack);
     }
     if (numberStack.length > 1) {
-        if (opts.ignoreErrors & QwickMaffs.Error.MultipleNumbers) {
+        if (opts.ignoreErrors & Errors.MultipleNumbers) {
             return numberStack.reduce((a, b) => a * b);
         }
         return {
-            error: QwickMaffs.Error.MultipleNumbers,
+            error: Errors.MultipleNumbers,
             pos: secondPos,
             len: secondLen,
         };
     }
     if (numberStack.length === 0) {
         return {
-            error: QwickMaffs.Error.NoNumbers,
+            error: Errors.NoNumbers,
             pos: tokens.pos || 0,
             len: tokens.len,
         };
@@ -366,7 +360,7 @@ function execTokenList(tokens, operators, opts) {
         const needed = func.length;
         if (numberStack.length < needed) {
             return {
-                error: QwickMaffs.Error.IncorrectNumberOfParameters,
+                error: Errors.IncorrectNumberOfParameters,
                 pos,
                 len,
             };
@@ -386,4 +380,3 @@ function optimizeOps(ops) {
     }
     return lookup;
 }
-export default QwickMaffs;

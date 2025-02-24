@@ -1,7 +1,7 @@
 <html>
 	<head>
 		<script type="module">
-			import QwickMaffs from './dist/esm/index.js';
+			import * as QwickMaffs from './dist/esm/index.js';
 
 			/**
 			 * @param {KeyboardEvent|FocusEvent} event
@@ -18,20 +18,20 @@
 				} else {
 					let text = `ERROR: `;
 					switch (result.error) {
-						case QwickMaffs.Error.UnbalancedParenthesis:
+						case QwickMaffs.Errors.UnbalancedParenthesis:
 							text += 'Unbalanced parenthesis';
 							break;
-						case QwickMaffs.Error.UnexpectedSymbol:
+						case QwickMaffs.Errors.UnexpectedSymbol:
 							text += `Unexpected symbol '${strValue[result.pos]}'`;
 							break;
-						case QwickMaffs.Error.IncorrectNumberOfParameters:
+						case QwickMaffs.Errors.IncorrectNumberOfParameters:
 							text += 'Incorrect number of parameters';
 							break;
-						case QwickMaffs.Error.MultipleNumbers:
+						case QwickMaffs.Errors.MultipleNumbers:
 							text +=
 								'Multiple unconnected numbers (Did you forget an operator?)';
 							break;
-						case QwickMaffs.Error.NoNumbers:
+						case QwickMaffs.Errors.NoNumbers:
 							text += 'The operation resulted in no numeric values';
 							break;
 						default:
@@ -125,7 +125,7 @@ const result = QuickMaffs.exec('4 + 5 * 6', {
 	// at what the user tried to accomplish.
 	// E.g. MultipleNumbers will multiply the numbers, and UnbalancedParenthesis will be balanced
 	// automatically</span>
-	ignoreErrors: QwickMaffs.Error.MultipleNumbers | QwickMaffs.Error.UnbalancedParenthesis,
+	ignoreErrors: QwickMaffs.Errors.MultipleNumbers | QwickMaffs.Errors.UnbalancedParenthesis,
 
 	<span class="comment">// Sets the operators supported in the expression. Here, we take all default operators and add
 	// "%", which divides a number by 100</span>
@@ -163,7 +163,7 @@ const result = QuickMaffs.exec('4 + 5 * 6', {
 		<p>
 			The errors returned will have the shape <code>{ pos: number, error: number }</code>, where <code>pos</code>
 			is the string position at which the error occurred and <code>error</code> is an error code.
-			<code>QwickMaffs.Error</code> contains an enum of all possible error codes. Error codes passed to the
+			<code>QwickMaffs.Errors</code> contains an enum of all possible error codes. Error codes passed to the
 			<code>ignoreErrors</code> will never be returned. Instead, QwickMaffs will attempt to silently fix the
 			issue.
 		</p>
