@@ -9,6 +9,7 @@ export declare const Errors: {
     readonly IncorrectNumberOfParameters: 4;
     readonly MultipleNumbers: 8;
     readonly NoNumbers: 16;
+    readonly All: 31;
 };
 export declare function exec(str: string, opts?: Partial<QMOpts>): number | QMError;
 export interface QMOpts {
