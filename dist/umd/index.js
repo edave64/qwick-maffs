@@ -103,6 +103,7 @@ var __assign = (this && this.__assign) || function () {
         IncorrectNumberOfParameters: 4,
         MultipleNumbers: 8,
         NoNumbers: 16,
+        All: 31,
     };
     function exec(str, opts) {
         var normalizedOpts = normalizeOpts(opts);

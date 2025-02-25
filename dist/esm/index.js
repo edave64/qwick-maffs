@@ -79,6 +79,7 @@ export const Errors = {
     IncorrectNumberOfParameters: 4,
     MultipleNumbers: 8,
     NoNumbers: 16,
+    All: 31,
 };
 export function exec(str, opts) {
     const normalizedOpts = normalizeOpts(opts);

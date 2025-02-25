@@ -1,37 +1,34 @@
 <html>
 	<head>
 		<script type="module">
-			import * as QwickMaffs from './dist/esm/index.js';
+			import { bind } from './dist/esm/input.js';
+			import { Errors } from '/dist/esm/index.js';
 
-			/**
-			 * @param {KeyboardEvent|FocusEvent} event
-			 */
-			function maffs(event) {
-				if (event.type === 'keydown' && event.key !== 'Enter') return;
-
-				const strValue = event.target.value;
-				const result = QwickMaffs.exec(strValue);
-				const errors = document.querySelector('.errors');
-				if (typeof result === 'number') {
-					event.target.value = result;
+			const errors = document.querySelector('.errors');
+			bind(document.getElementById('strict_input'), {
+				onValueChange: (val) => {
 					errors.innerHTML = '';
-				} else {
+				},
+				onUndo: () => {
+					errors.innerHTML = '';
+				},
+				onError: (error) => {
 					let text = `ERROR: `;
-					switch (result.error) {
-						case QwickMaffs.Errors.UnbalancedParenthesis:
+					switch (error.error) {
+						case Errors.UnbalancedParenthesis:
 							text += 'Unbalanced parenthesis';
 							break;
-						case QwickMaffs.Errors.UnexpectedSymbol:
+						case Errors.UnexpectedSymbol:
 							text += `Unexpected symbol '${strValue[result.pos]}'`;
 							break;
-						case QwickMaffs.Errors.IncorrectNumberOfParameters:
+						case Errors.IncorrectNumberOfParameters:
 							text += 'Incorrect number of parameters';
 							break;
-						case QwickMaffs.Errors.MultipleNumbers:
+						case Errors.MultipleNumbers:
 							text +=
 								'Multiple unconnected numbers (Did you forget an operator?)';
 							break;
-						case QwickMaffs.Errors.NoNumbers:
+						case Errors.NoNumbers:
 							text += 'The operation resulted in no numeric values';
 							break;
 						default:
@@ -39,13 +36,11 @@
 							break;
 					}
 
-					text += ` at position ${result.pos + 1}: ${strValue.slice(0, result.pos)}<u>${strValue.slice(result.pos, result.pos + result.len)}</u>${strValue.slice(result.pos + result.len)}`;
+					text += ` at position ${error.pos + 1}: ${error.region[0]}<u>${error.region[1]}</u>${error.region[2]}`;
 
 					errors.innerHTML = text;
 				}
-			}
-
-			window.maffs = maffs;
+			})
 		</script>
 		<style>
 			body {
@@ -104,7 +99,7 @@
 		<p>Try it yourself (Press enter or leave the input to evaluate):</p>
 		<p>
 			<label for="strict_input">Test:</label>
-			<input id="strict_input" onblur="maffs(event)" onkeydown="maffs(event)" />
+			<input id="strict_input" />
 		</p>
 		<p class="errors"></p>
 		<h2>Documentation</h2>
