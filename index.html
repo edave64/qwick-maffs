@@ -104,8 +104,62 @@
 		<p class="errors"></p>
 		<h2>Documentation</h2>
 		<p>
-			QuickMaffs only exports a single function called `exec`. This takes the
+			QwickMaffs has two functions, `bind` to , `exec`.
+			 This takes the
 			text in the input and a set of configuration options.
+		</p>
+		<h3>Binding to an input</h3>
+		<p>
+			The <code>bind</code> function is the easy way to use QwickMaffs. It take an input and makes it so it automatically processes the
+			any math term when the user presses enter or the input looses focus.
+
+			It also adds an undo feature, where pressing <kbd>ESC</kbd> during editing reverts all changes since the input gained focus.
+		</p>
+		<p>
+			<pre><code>
+import { bind } `qwick-maffs/input.js`;
+
+const qmInput = bind(input, {
+	<span class="comment">// See `exec` below for more options.</span>
+
+	<span class="comment">// Set to `true` to remove the undo feature of the ESC key</span>
+	noUndo: false,
+
+	onValueChanged(val: number) {
+		<span class="comment">// Called when an expression is executed successfully</span>
+	}
+
+	onError(err: QMError <span class="comment">/* -> see Error handling */</span>) {
+		<span class="comment">// Called when an invalid expression was entered</span>
+	}, 
+
+	onUndo(prev: string) {
+		<span class="comment">// Called when the user pressed ESC and the value was reset. `prev` contains the text value
+		// before the undo was executed.</span>
+	}
+});
+
+<span class="comment">// qmInput here is the same object as input, but with addition type info for TypeScript, so it
+// can type-check the custom html events</span>
+
+qmInput.addEventListener('qmvaluechange', (e) => {
+	<span class="comment">// Same as the `onValueChanged` callback in `bind`. The value can be accessed through
+	// `e.details`</span>
+});
+
+qmInput.addEventListener('qmerror', (e) => {
+	<span class="comment">// Same as the `onError` callback in `bind`. The error can be accessed through `e.details`</span>
+});
+
+qmInput.addEventListener('qmundo', (e) => {
+	<span class="comment">// Same as the `onUndo` callback in `bind`. The previous value can be accessed through
+	// `e.details`</span>
+});
+			</code></pre>
+		</p>
+		<h3>Manual Usage</h3>
+		<p>
+			The <code>exec</code> function can be used to execute a math expression.
 		</p>
 		<p>
 			<pre><code>

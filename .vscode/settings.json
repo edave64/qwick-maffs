@@ -1,5 +1,14 @@
 {
 	"editor.formatOnSave": true,
 	"editor.defaultFormatter": "biomejs.biome",
-	"biome.lspBin": ""
+	"biome.lspBin": "",
+	"spellright.language": [
+		"de",
+		"en"
+	],
+	"spellright.documentTypes": [
+		"markdown",
+		"latex",
+		"plaintext"
+	]
 }
