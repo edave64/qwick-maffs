@@ -1,7 +1,8 @@
 <html>
 	<head>
 		<script type="module">
-			import { bind, Errors } from './dist/esm/input.js';
+			import { bind } from './dist/esm/input.js';
+			import { Errors } from './dist/esm/index.js';
 
 			const errors = document.querySelector('.errors');
 			bind(document.getElementById('strict_input'), {
