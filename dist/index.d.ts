@@ -1,5 +1,5 @@
 /*!
- * QwickMaffs 0.3.0 by edave64
+ * QwickMaffs 0.5.0 by edave64
  * Released under the MIT license: https://github.com/edave64/qwick-maffs/blob/main/LICENCE
  */
 export declare const DefaultOptions: QMOpts;

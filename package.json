@@ -1,11 +1,11 @@
 {
 	"name": "qwick-maffs",
-	"version": "0.3.0",
+	"version": "0.5.0",
 	"description": "Support simple mathmatical expressions in numeric inputs. Written to be completely framework agnostic.",
 	"main": "index.js",
 	"scripts": {
 		"build": "tsc && tsc --p tsconfig.esm.json && tsc --p tsconfig.umd.json",
-		"test": "jest"
+		"test": "vitest --run"
 	},
 	"repository": {
 		"type": "git",
@@ -25,8 +25,15 @@
 	},
 	"types": "./dist/index.d.ts",
 	"exports": {
-		"import": "./dist/esm/index.js",
-		"require": "./dist/umd/index.js",
-		"types": "./dist/index.d.ts"
+		".": {
+			"import": "./dist/esm/index.js",
+			"require": "./dist/umd/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./input.js": {
+			"import": "./dist/esm/input.js",
+			"require": "./dist/umd/input.js",
+			"types": "./dist/input.d.ts"
+		}
 	}
 }
